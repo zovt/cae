@@ -1,0 +1,8 @@
+[package]
+name = "edit"
+version = "0.1.0"
+authors = ["zovt <zovt@posteo.de>"]
+license = "GPL-3.0"
+
+[dependencies]
+glium = "0.20.0"

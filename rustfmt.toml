@@ -1,0 +1,6 @@
+fn_args_density = "Tall"
+hard_tabs = true
+reorder_imports = true
+reorder_imported_names = true
+use_try_shorthand = true
+wrap_comments = true
