@@ -31,7 +31,9 @@ fn main() {
 	use glium::glutin;
 
 	let mut events_loop = glutin::EventsLoop::new();
-	let window = glutin::WindowBuilder::new();
+	let window = glutin::WindowBuilder::new()
+		.with_title("yuga")
+		.with_dimensions(800, 600);
 	let context = glutin::ContextBuilder::new();
 	let display = glium::Display::new(window, context, &events_loop).unwrap();
 
@@ -47,7 +49,7 @@ fn main() {
 			},
 			_ => (),
 		});
-		
+
 		d += 0.1;
 
 		let vertex1 = Vertex {
