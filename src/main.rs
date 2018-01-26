@@ -11,9 +11,10 @@ implement_vertex!(Vertex, position);
 const VERT_SRC: &'static str = r#"
 #version 330 core
 in vec2 position;
+uniform float t;
 
 void main() {
-	gl_Position = vec4(position, 0.0, 1.0);
+	gl_Position = vec4(position.x + t, position.y, 0.0, 1.0);
 }
 "#;
 
@@ -41,6 +42,7 @@ fn main() {
 
 	let mut exit = false;
 	let mut d = 0f32;
+	let mut t = 0f32;
 	while !exit {
 		events_loop.poll_events(|ev| match ev {
 			glutin::Event::WindowEvent { event, .. } => match event {
@@ -50,16 +52,17 @@ fn main() {
 			_ => (),
 		});
 
-		d += 0.1;
+		d += 0.01;
+		t = d.sin();
 
 		let vertex1 = Vertex {
-			position: [-0.5 + d.sin(), -0.5],
+			position: [-0.5, -0.5],
 		};
 		let vertex2 = Vertex {
-			position: [0.0 + d.cos(), 0.5],
+			position: [0.0, 0.5],
 		};
 		let vertex3 = Vertex {
-			position: [0.5 + d.cos(), -0.25],
+			position: [0.5, -0.25],
 		};
 		let shape = vec![vertex1, vertex2, vertex3];
 
@@ -73,7 +76,7 @@ fn main() {
 				&vertex_buffer,
 				&indices,
 				&program,
-				&glium::uniforms::EmptyUniforms,
+				&uniform! { t: t },
 				&Default::default(),
 			)
 			.unwrap();
