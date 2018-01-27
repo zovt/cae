@@ -46,8 +46,8 @@ void main() {
 "#;
 
 fn main() {
-	let matches = clap_app!(yuga =>
-		(version: "kali 0.1")
+	let matches = clap_app!(cae =>
+		(version: "cae 0.0.1")
 		(author: "zovt <zovt@posteo.de>")
 		(@arg file: +takes_value)
 	).get_matches();
