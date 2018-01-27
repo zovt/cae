@@ -1,0 +1,5 @@
+Dump yuga.dump
+cargo build
+cargo run -- src/main.rs
+cargo fmt
+win

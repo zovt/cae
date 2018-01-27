@@ -1,11 +1,17 @@
 #[macro_use]
 extern crate cgmath;
-use cgmath::One;
-#[macro_use]
-extern crate glium;
 #[macro_use]
 extern crate clap;
+extern crate freetype;
+#[macro_use]
+extern crate glium;
 
+mod hb_raw;
+
+use cgmath::One;
+use freetype::freetype::*;
+use hb_raw::*;
+use std::ffi;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -51,14 +57,43 @@ fn main() {
 		(author: "zovt <zovt@posteo.de>")
 		(@arg file: +takes_value)
 	).get_matches();
-	
+
 	let path = matches.value_of("file").unwrap();
-	
+
 	use glium::Surface;
 	use glium::glutin;
 
 	let (win_w, win_h) = (800f32, 600f32);
 
+	// Font stuff
+	let pt_sz = 16 * 64;
+	let hdpi = 72;
+	let vdpi = 72;
+
+	let mut ft_lib: FT_Library = std::ptr::null_mut();
+	unsafe {
+		FT_Init_FreeType(&mut ft_lib);
+	};
+	let mut ft_face: FT_Face = std::ptr::null_mut();
+	unsafe {
+		FT_New_Face(
+			ft_lib,
+			ffi::CString::new("fonts/DejaVuSans.ttf").unwrap().as_ptr(),
+			0,
+			&mut ft_face as *mut FT_Face,
+		);
+		FT_Set_Char_Size(ft_face, 0, pt_sz, hdpi, vdpi);
+	};
+	let mut hb_font: *mut hb_font_t = unsafe { hb_ft_font_create(ft_face, None) };
+	let mut hb_buf = unsafe { 
+		let buf = hb_buffer_create();
+		hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
+		hb_buffer_set_script(buf, HB_SCRIPT_LATIN);
+		hb_buffer_set_language(buf, hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), 2));
+		buf
+	};
+
+	// Graphics stuff
 	let mut events_loop = glutin::EventsLoop::new();
 	let window = glutin::WindowBuilder::new()
 		.with_title("cae")
@@ -99,6 +134,7 @@ fn main() {
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
 	f.read_to_string(&mut text);
+	unsafe { hb_buffer_add_utf8(hb_buf, ffi::CString::new(text.clone()).unwrap().as_ptr(), text.len() as i32, 0, text.len() as i32) };
 	let mut exit = false;
 	while !exit {
 		events_loop.poll_events(|ev| match ev {
@@ -147,4 +183,10 @@ fn main() {
 		}
 		target.finish().unwrap();
 	}
+
+	// Clean up
+	unsafe {
+		hb_buffer_destroy(hb_buf);
+		FT_Done_Library(ft_lib);
+	 };
 }
