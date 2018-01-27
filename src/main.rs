@@ -61,7 +61,7 @@ fn main() {
 
 	let mut events_loop = glutin::EventsLoop::new();
 	let window = glutin::WindowBuilder::new()
-		.with_title("yuga")
+		.with_title("cae")
 		.with_dimensions(win_w as u32, win_h as u32);
 	let context = glutin::ContextBuilder::new()
 		.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3)))
