@@ -6,3 +6,4 @@ license = "GPL-3.0"
 
 [dependencies]
 glium = "0.20.0"
+cgmath = "0.16.0"
