@@ -3,6 +3,8 @@ extern crate cgmath;
 use cgmath::One;
 #[macro_use]
 extern crate glium;
+#[macro_use]
+extern crate clap;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -44,6 +46,14 @@ void main() {
 "#;
 
 fn main() {
+	let matches = clap_app!(yuga =>
+		(version: "kali 0.1")
+		(author: "zovt <zovt@posteo.de>")
+		(@arg file: +takes_value)
+	).get_matches();
+	
+	let path = matches.value_of("file").unwrap();
+	
 	use glium::Surface;
 	use glium::glutin;
 
@@ -86,7 +96,7 @@ fn main() {
 	let proj_ref: [[f32; 4]; 4] = proj.into();
 	let world_ref: [[f32; 4]; 4] = world.into();
 
-	let mut f = File::open("src/main.rs").unwrap();
+	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
 	f.read_to_string(&mut text);
 	let mut exit = false;

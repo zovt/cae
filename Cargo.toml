@@ -1,9 +1,10 @@
 [package]
-name = "yuga"
-version = "0.1.0"
+name = "cae"
+version = "0.0.1"
 authors = ["zovt <zovt@posteo.de>"]
 license = "GPL-3.0"
 
 [dependencies]
 glium = "0.20.0"
 cgmath = "0.16.0"
+clap = "2.29.0"
