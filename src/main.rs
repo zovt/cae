@@ -85,11 +85,14 @@ fn main() {
 		FT_Set_Char_Size(ft_face, 0, pt_sz, hdpi, vdpi);
 	};
 	let mut hb_font: *mut hb_font_t = unsafe { hb_ft_font_create(ft_face, None) };
-	let mut hb_buf = unsafe { 
+	let mut hb_buf = unsafe {
 		let buf = hb_buffer_create();
 		hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
 		hb_buffer_set_script(buf, HB_SCRIPT_LATIN);
-		hb_buffer_set_language(buf, hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), 2));
+		hb_buffer_set_language(
+			buf,
+			hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), 2),
+		);
 		buf
 	};
 
@@ -134,8 +137,18 @@ fn main() {
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
 	f.read_to_string(&mut text);
-	unsafe { hb_buffer_add_utf8(hb_buf, ffi::CString::new(text.clone()).unwrap().as_ptr(), text.len() as i32, 0, text.len() as i32) };
+	unsafe {
+		hb_buffer_add_utf8(
+			hb_buf,
+			ffi::CString::new(text.clone()).unwrap().as_ptr(),
+			text.len() as i32,
+			0,
+			text.len() as i32,
+		)
+	};
 	let mut exit = false;
+	// TODO: Only render when necessary to avoid unneeded CPU usage. This should be
+	// pretty stupid at first
 	while !exit {
 		events_loop.poll_events(|ev| match ev {
 			glutin::Event::WindowEvent { event, .. } => match event {
@@ -188,5 +201,5 @@ fn main() {
 	unsafe {
 		hb_buffer_destroy(hb_buf);
 		FT_Done_Library(ft_lib);
-	 };
+	};
 }
