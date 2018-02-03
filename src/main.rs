@@ -17,15 +17,17 @@ use std::io::prelude::*;
 
 #[derive(Copy, Clone)]
 struct Vertex {
-	vert_coords: [f32; 2],
+	pos: [f32; 2],
+	uv: [f32; 2],
 }
 
-implement_vertex!(Vertex, vert_coords);
+implement_vertex!(Vertex, pos, uv);
 
 const VERT_SRC: &'static str = r#"
 #version 330 core
 
-in vec2 vert_coords;
+in vec2 pos;
+in vec2 uv;
 
 uniform mat4 transform;
 uniform mat4 world;
@@ -33,10 +35,12 @@ uniform mat4 proj;
 uniform vec3 color;
 
 out vec3 f_color;
+out vec2 f_uv;
 
 void main() {
-	gl_Position = proj * world * transform * vec4(vert_coords, 0.0, 1.0);
+	gl_Position = proj * world * transform * vec4(pos, 0.0, 1.0);
 	f_color = color;
+	f_uv = uv;
 }
 "#;
 
@@ -44,10 +48,13 @@ const FRAG_SRC: &'static str = r#"
 #version 330 core
 
 in vec3 f_color;
+in vec2 f_uv;
 out vec4 color;
 
+uniform sampler2D glyph;
+
 void main() {
-	color = vec4(f_color, 0.0);
+	color = texture(glyph, f_uv) * vec4(f_color, 0.0);
 }
 "#;
 
@@ -110,16 +117,20 @@ fn main() {
 	let world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
 
 	let vertex1 = Vertex {
-		vert_coords: [1.0, 1.0],
+		pos: [1.0, 1.0],
+		uv: [1.0, 1.0]
 	};
 	let vertex2 = Vertex {
-		vert_coords: [1.0, 0.0],
+		pos: [1.0, 0.0],
+		uv: [1.0, 0.0],
 	};
 	let vertex3 = Vertex {
-		vert_coords: [0.0, 0.0],
+		pos: [0.0, 0.0],
+		uv: [0.0, 0.0],
 	};
 	let vertex4 = Vertex {
-		vert_coords: [0.0, 1.0],
+		pos: [0.0, 1.0],
+		uv: [0.0, 1.0],
 	};
 	let px = vec![vertex1, vertex2, vertex3, vertex4];
 	let px_indices = glium::index::IndexBuffer::new(
@@ -137,14 +148,20 @@ fn main() {
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
 	f.read_to_string(&mut text);
-	unsafe {
+	let (glyph_count, glyphs, glyphs_pos) = unsafe {
 		hb_buffer_add_utf8(
 			hb_buf,
 			ffi::CString::new(text.clone()).unwrap().as_ptr(),
 			text.len() as i32,
 			0,
 			text.len() as i32,
-		)
+		);
+		hb_shape(hb_font, hb_buf, std::ptr::null(), 0);
+		let mut glyph_count;
+		let glyphs = hb_buffer_get_glyph_infos(hb_buf, &mut glyph_count);
+		let glyphs_pos = hb_buffer_get_glyph_positions(hb_buf, &mut glyph_count);
+
+		(glyph_count, glyphs, glyphs_pos)
 	};
 	let mut exit = false;
 	// TODO: Only render when necessary to avoid unneeded CPU usage. This should be
@@ -161,38 +178,36 @@ fn main() {
 		let mut target = display.draw();
 		target.clear_color(1.0, 1.0, 1.0, 1.0);
 
-		let mut col = 0;
-		let mut row = 0;
-		for c in text.chars() {
-			if c == '\n' {
-				row = row + 1;
-				col = 0;
-			} else if c.is_whitespace() {
-				col = col + 1;
-			} else {
-				let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-					cgmath::Vector3::new(col as f32 * 10.0f32, row as f32 * 10f32, 0f32),
-				) * cgmath::Matrix4::from_scale(10f32);
-				let transform_ref: [[f32; 4]; 4] = transform.into();
-
-				let uniforms = uniform! {
-					proj: proj_ref,
-					world: world_ref,
-					transform: transform_ref,
-					color: [1.0, 0.0, 0.0f32]
-				};
-				target
-					.draw(
-						&vertex_buffer,
-						&px_indices,
-						&program,
-						&uniforms,
-						&Default::default(),
-					)
-					.unwrap();
-
-				col = col + 1;
+		let mut pen = (0.0, 0.0);
+		for i in 0..glyph_count {
+			unsafe {
+				FT_Load_Glyph(ft_face, (*glyphs.offset(i as isize)).codepoint, 0);
+				FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
 			}
+
+			let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
+				cgmath::Vector3::new(col as f32 * 10.0f32, row as f32 * 10f32, 0f32),
+			) * cgmath::Matrix4::from_scale(10f32);
+			let transform_ref: [[f32; 4]; 4] = transform.into();
+
+			let ft_bitmap =  (*(*ft_face).glyph).bitmap
+			let ft_bitmap_sz = bitmap.rows * bitmap.width;
+			let uniforms = uniform! {
+				proj: proj_ref,
+				world: world_ref,
+				transform: transform_ref,
+				glyph: (*(*ft_face).glyph).bitmap.buffer,
+				color: [1.0, 0.0, 0.0f32]
+			};
+			target
+				.draw(
+					&vertex_buffer,
+					&px_indices,
+					&program,
+					&uniforms,
+					&Default::default(),
+				)
+				.unwrap();
 		}
 		target.finish().unwrap();
 	}
