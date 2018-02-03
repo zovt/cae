@@ -6,6 +6,12 @@
 #![allow(non_snake_case)]
 use freetype::freetype::*;
 
+pub type __int8_t = ::std::os::raw::c_schar;
+pub type __uint8_t = ::std::os::raw::c_uchar;
+pub type __int16_t = ::std::os::raw::c_short;
+pub type __uint16_t = ::std::os::raw::c_ushort;
+pub type __int32_t = ::std::os::raw::c_int;
+pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -327,8 +333,9 @@ fn bindgen_test_layout_hb_user_data_key_t() {
 		)
 	);
 }
-pub type hb_destroy_func_t =
-	::std::option::Option<unsafe extern "C" fn(user_data: *mut ::std::os::raw::c_void)>;
+pub type hb_destroy_func_t = ::std::option::Option<
+	unsafe extern "C" fn(user_data: *mut ::std::os::raw::c_void),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct hb_feature_t {
