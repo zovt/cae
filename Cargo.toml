@@ -4,11 +4,13 @@ version = "0.0.1"
 authors = ["zovt <zovt@posteo.de>"]
 license = "GPL-3.0"
 
+links = "harfbuzz freetype2"
+build="build.rs"
+
 [dependencies]
 glium = "0.20.0"
 cgmath = "0.16.0"
 clap = "2.29.0"
-harfbuzz-sys = "0.1.15"
 freetype = "0.3.0"
 
 [build-dependencies]

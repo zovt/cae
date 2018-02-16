@@ -1,1 +1,2 @@
 DONE: load string, draw a square for each letter
+TODO: make ogl texture from glyph, render them in shader

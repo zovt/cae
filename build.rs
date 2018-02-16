@@ -41,7 +41,7 @@ fn main() {
 		.map(|p| "-I".to_string() + AsRef::<str>::as_ref(&p.to_string_lossy()))
 		.collect::<Vec<String>>();
 	let bindings = bindgen::Builder::default()
-		.header("hb_bind.h")	
+		.header("hb_bind.h")
 		.raw_line("#![allow(dead_code)]")
 		.raw_line("#![allow(non_upper_case_globals)]")
 		.raw_line("#![allow(non_camel_case_types)]")
