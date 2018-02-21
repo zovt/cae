@@ -23,40 +23,8 @@ struct Vertex {
 
 implement_vertex!(Vertex, pos, uv);
 
-const VERT_SRC: &'static str = r#"
-#version 330 core
-
-in vec2 pos;
-in vec2 uv;
-
-uniform mat4 transform;
-uniform mat4 world;
-uniform mat4 proj;
-uniform vec3 color;
-
-out vec3 f_color;
-out vec2 f_uv;
-
-void main() {
-	gl_Position = proj * world * transform * vec4(pos, 0.0, 1.0);
-	f_color = color;
-	f_uv = uv;
-}
-"#;
-
-const FRAG_SRC: &'static str = r#"
-#version 330 core
-
-in vec3 f_color;
-in vec2 f_uv;
-out vec4 color;
-
-uniform sampler2D glyph;
-
-void main() {
-	color = texture(glyph, f_uv) * vec4(f_color, 0.0);
-}
-"#;
+const VERT_SRC: &'static str = include_str!("shaders/text.vert");
+const FRAG_SRC: &'static str = include_str!("shaders/text.frag");
 
 fn main() {
 	let matches = clap_app!(cae =>
@@ -157,7 +125,7 @@ fn main() {
 			text.len() as i32,
 		);
 		hb_shape(hb_font, hb_buf, std::ptr::null(), 0);
-		let mut glyph_count;
+		let mut glyph_count = 0;
 		let glyphs = hb_buffer_get_glyph_infos(hb_buf, &mut glyph_count);
 		let glyphs_pos = hb_buffer_get_glyph_positions(hb_buf, &mut glyph_count);
 
@@ -184,19 +152,30 @@ fn main() {
 				FT_Load_Glyph(ft_face, (*glyphs.offset(i as isize)).codepoint, 0);
 				FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
 			}
-
+			
+			let col = 0;
+			let row = 0;
 			let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
 				cgmath::Vector3::new(col as f32 * 10.0f32, row as f32 * 10f32, 0f32),
 			) * cgmath::Matrix4::from_scale(10f32);
 			let transform_ref: [[f32; 4]; 4] = transform.into();
 
-			let ft_bitmap =  (*(*ft_face).glyph).bitmap
-			let ft_bitmap_sz = bitmap.rows * bitmap.width;
+			let ft_bitmap = unsafe{ (*(*ft_face).glyph).bitmap };
+			
+			let raw_img = glium::texture::RawImage2d::from_raw_rgb_reversed(
+				unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
+				(ft_bitmap.rows, ft_bitmap.width)
+			);
+			let glyph_tex = glium::texture::unsigned_texture2d::UnsignedTexture2d::new(
+				&display,
+				raw_img,
+			).unwrap();
+
 			let uniforms = uniform! {
 				proj: proj_ref,
 				world: world_ref,
 				transform: transform_ref,
-				glyph: (*(*ft_face).glyph).bitmap.buffer,
+				glyph: &glyph_tex,
 				color: [1.0, 0.0, 0.0f32]
 			};
 			target
