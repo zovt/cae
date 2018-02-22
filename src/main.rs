@@ -72,7 +72,7 @@ fn main() {
 	unsafe {
 		FT_New_Face(
 			ft_lib,
-			ffi::CString::new("fonts/Hack-Regular.ttf").unwrap().as_ptr(),
+			ffi::CString::new("fonts/DejaVuSans.ttf").unwrap().as_ptr(),
 			0,
 			&mut ft_face as *mut FT_Face,
 		);
@@ -104,19 +104,19 @@ fn main() {
 	let world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
 
 	let vertex1 = Vertex {
-		pos: [1.0, 0.0],
+		pos: [1.0, 1.0],
 		uv: [1.0, 1.0]
 	};
 	let vertex2 = Vertex {
-		pos: [1.0, -1.0],
+		pos: [1.0, 0.0],
 		uv: [1.0, 0.0],
 	};
 	let vertex3 = Vertex {
-		pos: [0.0, -1.0],
+		pos: [0.0, 0.0],
 		uv: [0.0, 0.0],
 	};
 	let vertex4 = Vertex {
-		pos: [0.0, 0.0],
+		pos: [0.0, 1.0],
 		uv: [0.0, 1.0],
 	};
 	let px = vec![vertex1, vertex2, vertex3, vertex4];
@@ -165,23 +165,25 @@ fn main() {
 		let mut target = display.draw();
 		target.clear_color(1.0, 1.0, 1.0, 1.0);
 
-		let mut pen = (0.0, 50.0);
+		let mut pen = (0.0, 20.0);
 		for i in 0..glyph_count {
 			let glyph_pos = unsafe { *glyphs_pos.offset(i as isize) };
-			if (glyph_pos.y_offset != 0) {
-				println!("x adv {} y adv {} x off {} y off {}", glyph_pos.x_advance, glyph_pos.y_advance, glyph_pos.x_offset, glyph_pos.y_offset);
+			let glyph = unsafe { *glyphs.offset(i as isize) };
+			if (glyph.codepoint == 0) {
+				pen = (0.0, pen.1 + 20.0);
+				continue;
 			};
 			
 			unsafe {
-				FT_Load_Glyph(ft_face, (*glyphs.offset(i as isize)).codepoint, 0);
+				FT_Load_Glyph(ft_face, glyph.codepoint, 0);
 				FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
 			};
 			
 			let col = 0;
 			let row = 0;
 			
-			let ft_glyph = unsafe{ (*ft_face).glyph };
-			let ft_bitmap = unsafe{ (*ft_glyph).bitmap };
+			let ft_glyph = unsafe{ (*(*ft_face).glyph) };
+			let ft_bitmap = ft_glyph.bitmap;
 			
 			let glyph_img = GlyphImg {
 				data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
@@ -190,7 +192,7 @@ fn main() {
 			};
 
 			let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-				cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32, pen.1 + (glyph_pos.y_offset as f32)/64f32, 0f32),
+				cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32 + ft_glyph.bitmap_left as f32, pen.1 + (glyph_pos.y_offset as f32)/64f32 - ft_glyph.bitmap_top as f32, 0f32),
 			) * cgmath::Matrix4::from_nonuniform_scale(glyph_img.width as f32, glyph_img.height as f32, 1.0f32);
 			let transform_ref: [[f32; 4]; 4] = transform.into();
 			
@@ -204,7 +206,7 @@ fn main() {
 				world: world_ref,
 				transform: transform_ref,
 				glyph: &glyph_tex,
-				color: [1.0, 0.0, 0.0f32]
+				color: [0.0, 0.0, 0.0f32]
 			};
 			target
 				.draw(
