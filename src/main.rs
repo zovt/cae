@@ -26,6 +26,25 @@ implement_vertex!(Vertex, pos, uv);
 const VERT_SRC: &'static str = include_str!("shaders/text.vert");
 const FRAG_SRC: &'static str = include_str!("shaders/text.frag");
 
+struct GlyphImg<'a> {
+	pub data: &'a [u8],
+	pub width: u32,
+	pub height: u32,
+}
+
+impl<'a> glium::texture::Texture2dDataSource<'a> for GlyphImg<'a> {
+	type Data = u8;
+
+	fn into_raw(self) -> glium::texture::RawImage2d<'a, Self::Data> {
+		glium::texture::RawImage2d {
+			data: std::borrow::Cow::Borrowed(self.data),
+			width: self.width,
+			height: self.height,
+			format: glium::texture::ClientFormat::U8,
+		}
+	}
+}
+
 fn main() {
 	let matches = clap_app!(cae =>
 		(version: "cae 0.0.1")
@@ -41,7 +60,7 @@ fn main() {
 	let (win_w, win_h) = (800f32, 600f32);
 
 	// Font stuff
-	let pt_sz = 16 * 64;
+	let pt_sz = 20 * 64;
 	let hdpi = 72;
 	let vdpi = 72;
 
@@ -53,7 +72,7 @@ fn main() {
 	unsafe {
 		FT_New_Face(
 			ft_lib,
-			ffi::CString::new("fonts/DejaVuSans.ttf").unwrap().as_ptr(),
+			ffi::CString::new("fonts/Hack-Regular.ttf").unwrap().as_ptr(),
 			0,
 			&mut ft_face as *mut FT_Face,
 		);
@@ -66,7 +85,7 @@ fn main() {
 		hb_buffer_set_script(buf, HB_SCRIPT_LATIN);
 		hb_buffer_set_language(
 			buf,
-			hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), 2),
+			hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), -1),
 		);
 		buf
 	};
@@ -85,19 +104,19 @@ fn main() {
 	let world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
 
 	let vertex1 = Vertex {
-		pos: [1.0, 1.0],
+		pos: [1.0, 0.0],
 		uv: [1.0, 1.0]
 	};
 	let vertex2 = Vertex {
-		pos: [1.0, 0.0],
+		pos: [1.0, -1.0],
 		uv: [1.0, 0.0],
 	};
 	let vertex3 = Vertex {
-		pos: [0.0, 0.0],
+		pos: [0.0, -1.0],
 		uv: [0.0, 0.0],
 	};
 	let vertex4 = Vertex {
-		pos: [0.0, 1.0],
+		pos: [0.0, 0.0],
 		uv: [0.0, 1.0],
 	};
 	let px = vec![vertex1, vertex2, vertex3, vertex4];
@@ -146,29 +165,38 @@ fn main() {
 		let mut target = display.draw();
 		target.clear_color(1.0, 1.0, 1.0, 1.0);
 
-		let mut pen = (0.0, 0.0);
+		let mut pen = (0.0, 50.0);
 		for i in 0..glyph_count {
+			let glyph_pos = unsafe { *glyphs_pos.offset(i as isize) };
+			if (glyph_pos.y_offset != 0) {
+				println!("x adv {} y adv {} x off {} y off {}", glyph_pos.x_advance, glyph_pos.y_advance, glyph_pos.x_offset, glyph_pos.y_offset);
+			};
+			
 			unsafe {
 				FT_Load_Glyph(ft_face, (*glyphs.offset(i as isize)).codepoint, 0);
 				FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
-			}
+			};
 			
 			let col = 0;
 			let row = 0;
-			let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-				cgmath::Vector3::new(col as f32 * 10.0f32, row as f32 * 10f32, 0f32),
-			) * cgmath::Matrix4::from_scale(10f32);
-			let transform_ref: [[f32; 4]; 4] = transform.into();
-
-			let ft_bitmap = unsafe{ (*(*ft_face).glyph).bitmap };
 			
-			let raw_img = glium::texture::RawImage2d::from_raw_rgb_reversed(
-				unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
-				(ft_bitmap.rows, ft_bitmap.width)
-			);
-			let glyph_tex = glium::texture::unsigned_texture2d::UnsignedTexture2d::new(
+			let ft_glyph = unsafe{ (*ft_face).glyph };
+			let ft_bitmap = unsafe{ (*ft_glyph).bitmap };
+			
+			let glyph_img = GlyphImg {
+				data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
+				width: ft_bitmap.width,
+				height: ft_bitmap.rows,
+			};
+
+			let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
+				cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32, pen.1 + (glyph_pos.y_offset as f32)/64f32, 0f32),
+			) * cgmath::Matrix4::from_nonuniform_scale(glyph_img.width as f32, glyph_img.height as f32, 1.0f32);
+			let transform_ref: [[f32; 4]; 4] = transform.into();
+			
+			let glyph_tex = glium::texture::texture2d::Texture2d::new(
 				&display,
-				raw_img,
+				glyph_img,
 			).unwrap();
 
 			let uniforms = uniform! {
@@ -187,6 +215,8 @@ fn main() {
 					&Default::default(),
 				)
 				.unwrap();
+				
+				pen = (pen.0 + (glyph_pos.x_advance as f32)/64f32, pen.1 - (glyph_pos.y_advance as f32)/64f32);
 		}
 		target.finish().unwrap();
 	}
