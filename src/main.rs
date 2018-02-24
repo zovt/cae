@@ -77,7 +77,7 @@ fn main() {
 	unsafe {
 		FT_New_Face(
 			ft_lib,
-			ffi::CString::new("fonts/DejaVuSans.ttf").unwrap().as_ptr(),
+			ffi::CString::new("fonts/Hasklig-Regular.otf").unwrap().as_ptr(),
 			0,
 			&mut ft_face as *mut FT_Face,
 		);
