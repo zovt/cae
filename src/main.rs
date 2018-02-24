@@ -14,6 +14,7 @@ use hb_raw::*;
 use std::ffi;
 use std::fs::File;
 use std::io::prelude::*;
+use std::collections::HashMap;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -30,6 +31,12 @@ struct GlyphImg<'a> {
 	pub data: &'a [u8],
 	pub width: u32,
 	pub height: u32,
+}
+
+struct GlyphDrawInfo {
+	pub tex: glium::Texture2d,
+	pub bm_top: i32,
+	pub bm_left: i32,
 }
 
 impl<'a> glium::texture::Texture2dDataSource<'a> for GlyphImg<'a> {
@@ -90,7 +97,7 @@ fn main() {
 		.with_gl_profile(glutin::GlProfile::Core);
 	let display = glium::Display::new(window, context, &events_loop).unwrap();
 
-	let proj: cgmath::Matrix4<f32> = cgmath::ortho(0f32, win_w, win_h, 0f32, 10f32, -10f32);
+	let mut proj: cgmath::Matrix4<f32> = cgmath::ortho(0f32, win_w, win_h, 0f32, 10f32, -10f32);
 	let world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
 
 	let vertex1 = Vertex {
@@ -121,6 +128,8 @@ fn main() {
 
 	let proj_ref: [[f32; 4]; 4] = proj.into();
 	let world_ref: [[f32; 4]; 4] = world.into();
+	
+	let mut g_d_infos: HashMap<u32, GlyphDrawInfo> = HashMap::new();
 
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
@@ -201,35 +210,43 @@ fn main() {
 				let glyph_pos = unsafe { *glyphs_pos.offset(i as isize) };
 				let glyph = unsafe { *glyphs.offset(i as isize) };
 				
-				unsafe {
-					FT_Load_Glyph(ft_face, glyph.codepoint, 0);
-					FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
-				};
+				if !g_d_infos.contains_key(&glyph.codepoint) {
+					unsafe {
+						FT_Load_Glyph(ft_face, glyph.codepoint, 0);
+						FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
+					};
 				
-				let ft_glyph = unsafe{ (*(*ft_face).glyph) };
-				let ft_bitmap = ft_glyph.bitmap;
+					let ft_glyph = unsafe{ (*(*ft_face).glyph) };
+					let ft_bitmap = ft_glyph.bitmap;
 				
-				let glyph_img = GlyphImg {
-					data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
-					width: ft_bitmap.width,
-					height: ft_bitmap.rows,
+					let glyph_img = GlyphImg {
+						data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
+						width: ft_bitmap.width,
+						height: ft_bitmap.rows,
+					};
+					
+					g_d_infos.insert(glyph.codepoint, GlyphDrawInfo {
+						tex: glium::texture::texture2d::Texture2d::new(
+							&display,
+							glyph_img,
+						).unwrap(),
+						bm_left: ft_glyph.bitmap_left,
+						bm_top: ft_glyph.bitmap_top,
+					});
 				};
-	
+
+				let g_d_info = &g_d_infos[&glyph.codepoint];
+
 				let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-					cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32 + ft_glyph.bitmap_left as f32, pen.1 + (glyph_pos.y_offset as f32)/64f32 - ft_glyph.bitmap_top as f32, 0f32),
-				) * cgmath::Matrix4::from_nonuniform_scale(glyph_img.width as f32, glyph_img.height as f32, 1.0f32);
+					cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32 + g_d_info.bm_left as f32, pen.1 + (glyph_pos.y_offset as f32)/64f32 - g_d_info.bm_top as f32, 0f32),
+				) * cgmath::Matrix4::from_nonuniform_scale(g_d_info.tex.width() as f32, g_d_info.tex.height() as f32, 1.0f32);
 				let transform_ref: [[f32; 4]; 4] = transform.into();
-				
-				let glyph_tex = glium::texture::texture2d::Texture2d::new(
-					&display,
-					glyph_img,
-				).unwrap();
-	
+					
 				let uniforms = uniform! {
 					proj: proj_ref,
 					world: world_ref,
 					transform: transform_ref,
-					glyph: &glyph_tex,
+					glyph: &g_d_info.tex,
 					color: [0.0, 0.0, 0.0f32]
 				};
 				target
