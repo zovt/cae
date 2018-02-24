@@ -60,9 +60,7 @@ fn main() {
 	let (win_w, win_h) = (800f32, 600f32);
 
 	// Font stuff
-	let pt_sz = 20 * 64;
-	let hdpi = 72;
-	let vdpi = 72;
+	let px_sz = 18;
 
 	let mut ft_lib: FT_Library = std::ptr::null_mut();
 	unsafe {
@@ -76,19 +74,11 @@ fn main() {
 			0,
 			&mut ft_face as *mut FT_Face,
 		);
-		FT_Set_Char_Size(ft_face, 0, pt_sz, hdpi, vdpi);
+		FT_Set_Pixel_Sizes(ft_face, 0, px_sz);
 	};
 	let mut hb_font: *mut hb_font_t = unsafe { hb_ft_font_create(ft_face, None) };
-	let mut hb_buf = unsafe {
-		let buf = hb_buffer_create();
-		hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
-		hb_buffer_set_script(buf, HB_SCRIPT_LATIN);
-		hb_buffer_set_language(
-			buf,
-			hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), -1),
-		);
-		buf
-	};
+	let mut hb_buf = unsafe { hb_buffer_create() };
+	let eng = unsafe { hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), -1) };
 
 	// Graphics stuff
 	let mut events_loop = glutin::EventsLoop::new();
@@ -135,21 +125,15 @@ fn main() {
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
 	f.read_to_string(&mut text);
-	let (glyph_count, glyphs, glyphs_pos) = unsafe {
-		hb_buffer_add_utf8(
-			hb_buf,
-			ffi::CString::new(text.clone()).unwrap().as_ptr(),
-			text.len() as i32,
-			0,
-			text.len() as i32,
-		);
-		hb_shape(hb_font, hb_buf, std::ptr::null(), 0);
-		let mut glyph_count = 0;
-		let glyphs = hb_buffer_get_glyph_infos(hb_buf, &mut glyph_count);
-		let glyphs_pos = hb_buffer_get_glyph_positions(hb_buf, &mut glyph_count);
-
-		(glyph_count, glyphs, glyphs_pos)
+	
+	// spacing constants
+	let (space_width, tab_width) = unsafe {
+		let g_idx = FT_Get_Char_Index(ft_face, ' ' as u64);
+		FT_Load_Glyph(ft_face, g_idx, 0);
+		let space_width = (*(*ft_face).glyph).metrics.horiAdvance;
+		(space_width as f32 / 64.0, 2.0 * (space_width as f32 / 64.0))
 	};
+
 	let mut exit = false;
 	// TODO: Only render when necessary to avoid unneeded CPU usage. This should be
 	// pretty stupid at first
@@ -161,64 +145,105 @@ fn main() {
 			},
 			_ => (),
 		});
-
+	
 		let mut target = display.draw();
 		target.clear_color(1.0, 1.0, 1.0, 1.0);
 
-		let mut pen = (0.0, 20.0);
-		for i in 0..glyph_count {
-			let glyph_pos = unsafe { *glyphs_pos.offset(i as isize) };
-			let glyph = unsafe { *glyphs.offset(i as isize) };
-			if (glyph.codepoint == 0) {
-				pen = (0.0, pen.1 + 20.0);
+		let mut pen = (0.0, px_sz as f32);
+		let (mut start, mut end) = (0, 0);
+		let mut idx = 0;
+		while idx < text.len() {
+			let mut c = text.chars().nth(idx).unwrap();
+			if c.is_whitespace() {
+				match c {
+					'\t' => pen.0 += tab_width,
+					' ' => pen.0 += space_width,
+					'\n' => { pen.0 = 0.0; pen.1 += px_sz as f32; },
+					_ => (),
+				};
+				idx += 1;
 				continue;
+			}
+			
+			start = idx;
+			while !c.is_whitespace() && idx < text.len() {
+				idx += 1;
+				c = text.chars().nth(idx).unwrap();
+			}
+			end = idx;
+			
+			// render previous "word"
+			let word = &text[start..end];
+			let (glyph_count, glyphs, glyphs_pos) = unsafe {
+				hb_buffer_set_direction(hb_buf, HB_DIRECTION_LTR);
+				hb_buffer_set_script(hb_buf, HB_SCRIPT_LATIN);
+				hb_buffer_set_language(
+					hb_buf,
+					eng,
+				);
+				hb_buffer_add_utf8(
+					hb_buf,
+					ffi::CString::new(word).unwrap().as_ptr(),
+					word.len() as i32,
+					0,
+					word.len() as i32,
+				);
+				hb_shape(hb_font, hb_buf, std::ptr::null(), 0);
+				let mut glyph_count = 0;
+				let glyphs = hb_buffer_get_glyph_infos(hb_buf, &mut glyph_count);
+				let glyphs_pos = hb_buffer_get_glyph_positions(hb_buf, &mut glyph_count);
+				hb_buffer_clear_contents(hb_buf);
+		
+				(glyph_count, glyphs, glyphs_pos)
 			};
 			
-			unsafe {
-				FT_Load_Glyph(ft_face, glyph.codepoint, 0);
-				FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
-			};
-			
-			let col = 0;
-			let row = 0;
-			
-			let ft_glyph = unsafe{ (*(*ft_face).glyph) };
-			let ft_bitmap = ft_glyph.bitmap;
-			
-			let glyph_img = GlyphImg {
-				data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
-				width: ft_bitmap.width,
-				height: ft_bitmap.rows,
-			};
-
-			let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-				cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32 + ft_glyph.bitmap_left as f32, pen.1 + (glyph_pos.y_offset as f32)/64f32 - ft_glyph.bitmap_top as f32, 0f32),
-			) * cgmath::Matrix4::from_nonuniform_scale(glyph_img.width as f32, glyph_img.height as f32, 1.0f32);
-			let transform_ref: [[f32; 4]; 4] = transform.into();
-			
-			let glyph_tex = glium::texture::texture2d::Texture2d::new(
-				&display,
-				glyph_img,
-			).unwrap();
-
-			let uniforms = uniform! {
-				proj: proj_ref,
-				world: world_ref,
-				transform: transform_ref,
-				glyph: &glyph_tex,
-				color: [0.0, 0.0, 0.0f32]
-			};
-			target
-				.draw(
-					&vertex_buffer,
-					&px_indices,
-					&program,
-					&uniforms,
-					&Default::default(),
-				)
-				.unwrap();
+			for i in 0..glyph_count {
+				let glyph_pos = unsafe { *glyphs_pos.offset(i as isize) };
+				let glyph = unsafe { *glyphs.offset(i as isize) };
 				
+				unsafe {
+					FT_Load_Glyph(ft_face, glyph.codepoint, 0);
+					FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
+				};
+				
+				let ft_glyph = unsafe{ (*(*ft_face).glyph) };
+				let ft_bitmap = ft_glyph.bitmap;
+				
+				let glyph_img = GlyphImg {
+					data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
+					width: ft_bitmap.width,
+					height: ft_bitmap.rows,
+				};
+	
+				let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
+					cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32 + ft_glyph.bitmap_left as f32, pen.1 + (glyph_pos.y_offset as f32)/64f32 - ft_glyph.bitmap_top as f32, 0f32),
+				) * cgmath::Matrix4::from_nonuniform_scale(glyph_img.width as f32, glyph_img.height as f32, 1.0f32);
+				let transform_ref: [[f32; 4]; 4] = transform.into();
+				
+				let glyph_tex = glium::texture::texture2d::Texture2d::new(
+					&display,
+					glyph_img,
+				).unwrap();
+	
+				let uniforms = uniform! {
+					proj: proj_ref,
+					world: world_ref,
+					transform: transform_ref,
+					glyph: &glyph_tex,
+					color: [0.0, 0.0, 0.0f32]
+				};
+				target
+					.draw(
+						&vertex_buffer,
+						&px_indices,
+						&program,
+						&uniforms,
+						&Default::default(),
+					)
+					.unwrap();
+	
 				pen = (pen.0 + (glyph_pos.x_advance as f32)/64f32, pen.1 - (glyph_pos.y_advance as f32)/64f32);
+			}
 		}
 		target.finish().unwrap();
 	}
