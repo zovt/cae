@@ -126,7 +126,7 @@ fn main() {
 
 	let program = glium::Program::from_source(&display, VERT_SRC, FRAG_SRC, None).unwrap();
 
-	let proj_ref: [[f32; 4]; 4] = proj.into();
+	let mut proj_ref: [[f32; 4]; 4] = proj.into();
 	let world_ref: [[f32; 4]; 4] = world.into();
 	
 	let mut g_d_infos: HashMap<u32, GlyphDrawInfo> = HashMap::new();
@@ -150,6 +150,7 @@ fn main() {
 		events_loop.poll_events(|ev| match ev {
 			glutin::Event::WindowEvent { event, .. } => match event {
 				glutin::WindowEvent::Closed => exit = true,
+				glutin::WindowEvent::Resized(w, h) => proj_ref = cgmath::ortho(0f32, w as f32, h as f32, 0f32, 10f32, -10f32).into(),
 				_ => (),
 			},
 			_ => (),
