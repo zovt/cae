@@ -63,7 +63,7 @@ fn main() {
 	use glium::Surface;
 	use glium::glutin;
 
-	let (win_w, win_h) = (800f32, 600f32);
+	let (mut win_w, mut win_h) = (800f32, 600f32);
 
 	// Font stuff
 	let px_sz = 18;
@@ -153,7 +153,9 @@ fn main() {
 			glutin::Event::WindowEvent { event, .. } => match event {
 				glutin::WindowEvent::Closed => exit = true,
 				glutin::WindowEvent::Resized(w, h) => {
-					proj_ref = cgmath::ortho(0f32, w as f32, h as f32, 0f32, 10f32, -10f32).into()
+					win_w = w as f32;
+					win_h = h as f32;
+					proj_ref = cgmath::ortho(0f32, win_w, win_h, 0f32, 10f32, -10f32).into()
 				}
 				glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
 					// TODO: Put max bounds on scrolling
@@ -182,7 +184,22 @@ fn main() {
 
 		let mut pen = (0.0, px_sz as f32);
 		let mut idx = 0;
+		// set pen y and idx to start at currently visible line
+		while pen.1 <= y {
+			match text[idx..].find('\n') {
+				Some(nl_idx) => idx += nl_idx + 1,
+				None => {
+					break;
+				},
+			};
+			
+			pen.1 += px_sz as f32;
+		}
+			
 		while idx < text.len() {
+			if pen.1 > y + win_h {
+				break;
+			}
 			let mut c = text.chars().nth(idx).unwrap();
 			if c.is_whitespace() {
 				match c {

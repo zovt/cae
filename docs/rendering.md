@@ -1,7 +1,5 @@
 # Rendering
 ## Current status
-As of 2706a393442b309a0ef6fc51dd236d3d23ea99a2, cae renders src/main.rs at about 20 FPS (this might be influenced by GNOME vsync on zovt's machine) in release mode according to glxosd.
-
 Some things we can do to increase the render speed:
 - Move glyphs into a texture atlas
 	- Benefits:
@@ -14,6 +12,10 @@ Some things we can do to increase the render speed:
 		- Multiple fonts?
 
 - Render only the part of the file we are currently displaying
+	- A basic version of this is currently implemented.
+		- Improvements:
+			- Cull by x in line rendering as well
+				- This will only be a problem in really long lines if we're not doing visual wrapping
 	- Benefits:
 		- This will probably give a very significant speedup
 	- Considerations:
