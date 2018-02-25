@@ -156,8 +156,8 @@ fn main() {
 				glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
 					// TODO: Put max bounds on scrolling
 					glutin::MouseScrollDelta::LineDelta(h, v) => {
-						x = (x + h * px_sz as f32).max(0.0);
-						y = (y + -v * px_sz as f32).max(0.0);
+						x = (x + h * 2 * px_sz as f32).max(0.0);
+						y = (y + -v * 2 * px_sz as f32).max(0.0);
 						world = cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
 						world_ref = world.into();
 					},
