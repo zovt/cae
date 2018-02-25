@@ -156,8 +156,8 @@ fn main() {
 				glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
 					// TODO: Put max bounds on scrolling
 					glutin::MouseScrollDelta::LineDelta(h, v) => {
-						x = (x + h * 2 * px_sz as f32).max(0.0);
-						y = (y + -v * 2 * px_sz as f32).max(0.0);
+						x = (x + h * 2.0 * px_sz as f32).max(0.0);
+						y = (y + -v * 2.0 * px_sz as f32).max(0.0);
 						world = cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
 						world_ref = world.into();
 					},
@@ -256,7 +256,7 @@ fn main() {
 				let g_d_info = &g_d_infos[&glyph.codepoint];
 
 				let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-					cgmath::Vector3::new(pen.0 + (glyph_pos.x_offset as f32)/64f32 + g_d_info.bm_left as f32, pen.1 + (glyph_pos.y_offset as f32)/64f32 - g_d_info.bm_top as f32, 0f32),
+					cgmath::Vector3::new((pen.0 + (glyph_pos.x_offset as f32)/64f32 + g_d_info.bm_left as f32).round(), (pen.1 + (glyph_pos.y_offset as f32)/64f32 - g_d_info.bm_top as f32).round(), 0f32),
 				) * cgmath::Matrix4::from_nonuniform_scale(g_d_info.tex.width() as f32, g_d_info.tex.height() as f32, 1.0f32);
 				let transform_ref: [[f32; 4]; 4] = transform.into();
 					
@@ -277,7 +277,7 @@ fn main() {
 					)
 					.unwrap();
 	
-				pen = (pen.0 + (glyph_pos.x_advance as f32)/64f32, pen.1 - (glyph_pos.y_advance as f32)/64f32);
+				pen = ((pen.0 + (glyph_pos.x_advance as f32)/64f32).round(), (pen.1 - (glyph_pos.y_advance as f32)/64f32).round());
 			}
 		}
 		target.finish().unwrap();
