@@ -333,9 +333,8 @@ fn bindgen_test_layout_hb_user_data_key_t() {
 		)
 	);
 }
-pub type hb_destroy_func_t = ::std::option::Option<
-	unsafe extern "C" fn(user_data: *mut ::std::os::raw::c_void),
->;
+pub type hb_destroy_func_t =
+	::std::option::Option<unsafe extern "C" fn(user_data: *mut ::std::os::raw::c_void)>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct hb_feature_t {
