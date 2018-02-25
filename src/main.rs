@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate cgmath;
 #[macro_use]
 extern crate clap;
@@ -83,8 +82,8 @@ fn main() {
 		);
 		FT_Set_Pixel_Sizes(ft_face, 0, px_sz);
 	};
-	let mut hb_font: *mut hb_font_t = unsafe { hb_ft_font_create(ft_face, None) };
-	let mut hb_buf = unsafe { hb_buffer_create() };
+	let hb_font: *mut hb_font_t = unsafe { hb_ft_font_create(ft_face, None) };
+	let hb_buf = unsafe { hb_buffer_create() };
 	let eng = unsafe { hb_language_from_string(ffi::CString::new("en").unwrap().as_ptr(), -1) };
 
 	// Graphics stuff
@@ -96,9 +95,8 @@ fn main() {
 		.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3)))
 		.with_gl_profile(glutin::GlProfile::Core);
 	let display = glium::Display::new(window, context, &events_loop).unwrap();
-	let window_id = display.gl_window().id();
 
-	let mut proj: cgmath::Matrix4<f32> = cgmath::ortho(0f32, win_w, win_h, 0f32, 10f32, -10f32);
+	let proj: cgmath::Matrix4<f32> = cgmath::ortho(0f32, win_w, win_h, 0f32, 10f32, -10f32);
 	let (mut x, mut y) = (0.0, 0.0);
 	let mut world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
 
@@ -135,7 +133,7 @@ fn main() {
 
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
-	f.read_to_string(&mut text);
+	f.read_to_string(&mut text).unwrap();
 	
 	// spacing constants
 	let (space_width, tab_width) = unsafe {
@@ -177,7 +175,6 @@ fn main() {
 		target.clear_color(1.0, 1.0, 1.0, 1.0);
 
 		let mut pen = (0.0, px_sz as f32);
-		let (mut start, mut end) = (0, 0);
 		let mut idx = 0;
 		while idx < text.len() {
 			let mut c = text.chars().nth(idx).unwrap();
@@ -192,12 +189,12 @@ fn main() {
 				continue;
 			}
 			
-			start = idx;
+			let start = idx;
 			while !c.is_whitespace() && idx < text.len() {
 				idx += 1;
 				c = text.chars().nth(idx).unwrap();
 			}
-			end = idx;
+			let end = idx;
 			
 			// render previous "word"
 			let word = &text[start..end];
