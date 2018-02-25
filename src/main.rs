@@ -10,10 +10,10 @@ mod hb_raw;
 use cgmath::One;
 use freetype::freetype::*;
 use hb_raw::*;
+use std::collections::HashMap;
 use std::ffi;
 use std::fs::File;
 use std::io::prelude::*;
-use std::collections::HashMap;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -76,7 +76,9 @@ fn main() {
 	unsafe {
 		FT_New_Face(
 			ft_lib,
-			ffi::CString::new("fonts/Hasklig-Regular.otf").unwrap().as_ptr(),
+			ffi::CString::new("fonts/Hasklig-Regular.otf")
+				.unwrap()
+				.as_ptr(),
 			0,
 			&mut ft_face as *mut FT_Face,
 		);
@@ -102,7 +104,7 @@ fn main() {
 
 	let vertex1 = Vertex {
 		pos: [1.0, 1.0],
-		uv: [1.0, 1.0]
+		uv: [1.0, 1.0],
 	};
 	let vertex2 = Vertex {
 		pos: [1.0, 0.0],
@@ -128,13 +130,13 @@ fn main() {
 
 	let mut proj_ref: [[f32; 4]; 4] = proj.into();
 	let mut world_ref: [[f32; 4]; 4] = world.into();
-	
+
 	let mut g_d_infos: HashMap<u32, GlyphDrawInfo> = HashMap::new();
 
 	let mut f = File::open(path).unwrap();
 	let mut text = String::new();
 	f.read_to_string(&mut text).unwrap();
-	
+
 	// spacing constants
 	let (space_width, tab_width) = unsafe {
 		let g_idx = FT_Get_Char_Index(ft_face, ' ' as u64);
@@ -150,27 +152,31 @@ fn main() {
 		events_loop.poll_events(|ev| match ev {
 			glutin::Event::WindowEvent { event, .. } => match event {
 				glutin::WindowEvent::Closed => exit = true,
-				glutin::WindowEvent::Resized(w, h) => proj_ref = cgmath::ortho(0f32, w as f32, h as f32, 0f32, 10f32, -10f32).into(),
+				glutin::WindowEvent::Resized(w, h) => {
+					proj_ref = cgmath::ortho(0f32, w as f32, h as f32, 0f32, 10f32, -10f32).into()
+				}
 				glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
 					// TODO: Put max bounds on scrolling
 					glutin::MouseScrollDelta::LineDelta(h, v) => {
 						x = (x + h * 2.0 * px_sz as f32).max(0.0);
 						y = (y + -v * 2.0 * px_sz as f32).max(0.0);
-						world = cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
+						world =
+							cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
 						world_ref = world.into();
-					},
+					}
 					glutin::MouseScrollDelta::PixelDelta(x_d, y_d) => {
 						x = (x + x_d).max(0.0);
 						y = (y + -y_d).max(0.0);
-						world = world * cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
+						world = world
+							* cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
 						world_ref = world.into();
-					},
+					}
 				},
 				_ => (),
 			},
 			_ => (),
 		});
-	
+
 		let mut target = display.draw();
 		target.clear_color(1.0, 1.0, 1.0, 1.0);
 
@@ -182,29 +188,29 @@ fn main() {
 				match c {
 					'\t' => pen.0 += tab_width,
 					' ' => pen.0 += space_width,
-					'\n' => { pen.0 = 0.0; pen.1 += px_sz as f32; },
+					'\n' => {
+						pen.0 = 0.0;
+						pen.1 += px_sz as f32;
+					}
 					_ => (),
 				};
 				idx += 1;
 				continue;
 			}
-			
+
 			let start = idx;
 			while !c.is_whitespace() && idx < text.len() {
 				idx += 1;
 				c = text.chars().nth(idx).unwrap();
 			}
 			let end = idx;
-			
+
 			// render previous "word"
 			let word = &text[start..end];
 			let (glyph_count, glyphs, glyphs_pos) = unsafe {
 				hb_buffer_set_direction(hb_buf, HB_DIRECTION_LTR);
 				hb_buffer_set_script(hb_buf, HB_SCRIPT_LATIN);
-				hb_buffer_set_language(
-					hb_buf,
-					eng,
-				);
+				hb_buffer_set_language(hb_buf, eng);
 				hb_buffer_add_utf8(
 					hb_buf,
 					ffi::CString::new(word).unwrap().as_ptr(),
@@ -217,46 +223,62 @@ fn main() {
 				let glyphs = hb_buffer_get_glyph_infos(hb_buf, &mut glyph_count);
 				let glyphs_pos = hb_buffer_get_glyph_positions(hb_buf, &mut glyph_count);
 				hb_buffer_clear_contents(hb_buf);
-		
+
 				(glyph_count, glyphs, glyphs_pos)
 			};
-			
+
 			for i in 0..glyph_count {
 				let glyph_pos = unsafe { *glyphs_pos.offset(i as isize) };
 				let glyph = unsafe { *glyphs.offset(i as isize) };
-				
+
 				if !g_d_infos.contains_key(&glyph.codepoint) {
 					unsafe {
 						FT_Load_Glyph(ft_face, glyph.codepoint, 0);
 						FT_Render_Glyph((*ft_face).glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL);
 					};
-				
-					let ft_glyph = unsafe{ (*(*ft_face).glyph) };
+
+					let ft_glyph = unsafe { (*(*ft_face).glyph) };
 					let ft_bitmap = ft_glyph.bitmap;
-				
+
 					let glyph_img = GlyphImg {
-						data: unsafe { std::slice::from_raw_parts(ft_bitmap.buffer, (ft_bitmap.rows * ft_bitmap.width) as usize) },
+						data: unsafe {
+							std::slice::from_raw_parts(
+								ft_bitmap.buffer,
+								(ft_bitmap.rows * ft_bitmap.width) as usize,
+							)
+						},
 						width: ft_bitmap.width,
 						height: ft_bitmap.rows,
 					};
-					
-					g_d_infos.insert(glyph.codepoint, GlyphDrawInfo {
-						tex: glium::texture::texture2d::Texture2d::new(
-							&display,
-							glyph_img,
-						).unwrap(),
-						bm_left: ft_glyph.bitmap_left,
-						bm_top: ft_glyph.bitmap_top,
-					});
+
+					g_d_infos.insert(
+						glyph.codepoint,
+						GlyphDrawInfo {
+							tex: glium::texture::texture2d::Texture2d::new(&display, glyph_img)
+								.unwrap(),
+							bm_left: ft_glyph.bitmap_left,
+							bm_top: ft_glyph.bitmap_top,
+						},
+					);
 				};
 
 				let g_d_info = &g_d_infos[&glyph.codepoint];
 
-				let transform: cgmath::Matrix4<f32> = cgmath::Matrix4::from_translation(
-					cgmath::Vector3::new((pen.0 + (glyph_pos.x_offset as f32)/64f32 + g_d_info.bm_left as f32).round(), (pen.1 + (glyph_pos.y_offset as f32)/64f32 - g_d_info.bm_top as f32).round(), 0f32),
-				) * cgmath::Matrix4::from_nonuniform_scale(g_d_info.tex.width() as f32, g_d_info.tex.height() as f32, 1.0f32);
+				let transform: cgmath::Matrix4<f32> =
+					cgmath::Matrix4::from_translation(cgmath::Vector3::new(
+						(pen.0 + (glyph_pos.x_offset as f32) / 64f32 + g_d_info.bm_left as f32)
+							.round(),
+						(pen.1 + (glyph_pos.y_offset as f32) / 64f32 - g_d_info.bm_top as f32)
+							.round(),
+						0f32,
+					))
+						* cgmath::Matrix4::from_nonuniform_scale(
+							g_d_info.tex.width() as f32,
+							g_d_info.tex.height() as f32,
+							1.0f32,
+						);
 				let transform_ref: [[f32; 4]; 4] = transform.into();
-					
+
 				let uniforms = uniform! {
 					proj: proj_ref,
 					world: world_ref,
@@ -273,8 +295,11 @@ fn main() {
 						&Default::default(),
 					)
 					.unwrap();
-	
-				pen = ((pen.0 + (glyph_pos.x_advance as f32)/64f32).round(), (pen.1 - (glyph_pos.y_advance as f32)/64f32).round());
+
+				pen = (
+					(pen.0 + (glyph_pos.x_advance as f32) / 64f32).round(),
+					(pen.1 - (glyph_pos.y_advance as f32) / 64f32).round(),
+				);
 			}
 		}
 		target.finish().unwrap();
