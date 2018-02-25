@@ -8,6 +8,8 @@ cae has no plugin system. Instead, you can send text, buffers, etc to other prog
 ### Be efficient
 cae is written in Rust and utilizes a custom UI toolkit written in OpenGL. The editor itself should never be the bottleneck when writing code.
 
+We want to render every file at 60 FPS or more. See [Contributing](#contributing)
+
 ### Be simple
 You should be thinking about the code you are writing when working in cae, instead of remembering what invocation you need to select the letter 'b' on line 5 in the file 'example.rs'.
 
@@ -17,6 +19,11 @@ It should not be hard to read text in cae.
 cae will:
 - support proportional-width fonts
 - render ligatures
+
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**IMPORTANT**: If a file does not render at 60FPS, please open an issue with the attached file!
 
 ## Prior Art
 - acme
