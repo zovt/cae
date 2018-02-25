@@ -96,9 +96,11 @@ fn main() {
 		.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3)))
 		.with_gl_profile(glutin::GlProfile::Core);
 	let display = glium::Display::new(window, context, &events_loop).unwrap();
+	let window_id = display.gl_window().id();
 
 	let mut proj: cgmath::Matrix4<f32> = cgmath::ortho(0f32, win_w, win_h, 0f32, 10f32, -10f32);
-	let world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
+	let (mut x, mut y) = (0.0, 0.0);
+	let mut world: cgmath::Matrix4<f32> = cgmath::Matrix4::one();
 
 	let vertex1 = Vertex {
 		pos: [1.0, 1.0],
@@ -127,7 +129,7 @@ fn main() {
 	let program = glium::Program::from_source(&display, VERT_SRC, FRAG_SRC, None).unwrap();
 
 	let mut proj_ref: [[f32; 4]; 4] = proj.into();
-	let world_ref: [[f32; 4]; 4] = world.into();
+	let mut world_ref: [[f32; 4]; 4] = world.into();
 	
 	let mut g_d_infos: HashMap<u32, GlyphDrawInfo> = HashMap::new();
 
@@ -151,6 +153,21 @@ fn main() {
 			glutin::Event::WindowEvent { event, .. } => match event {
 				glutin::WindowEvent::Closed => exit = true,
 				glutin::WindowEvent::Resized(w, h) => proj_ref = cgmath::ortho(0f32, w as f32, h as f32, 0f32, 10f32, -10f32).into(),
+				glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
+					// TODO: Put max bounds on scrolling
+					glutin::MouseScrollDelta::LineDelta(h, v) => {
+						x = (x + h * px_sz as f32).max(0.0);
+						y = (y + -v * px_sz as f32).max(0.0);
+						world = cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
+						world_ref = world.into();
+					},
+					glutin::MouseScrollDelta::PixelDelta(x_d, y_d) => {
+						x = (x + x_d).max(0.0);
+						y = (y + -y_d).max(0.0);
+						world = world * cgmath::Matrix4::from_translation(cgmath::Vector3::new(-x, -y, 0.0));
+						world_ref = world.into();
+					},
+				},
 				_ => (),
 			},
 			_ => (),
