@@ -18,7 +18,9 @@ It should not be hard to read text in cae.
 
 cae will:
 - support proportional-width fonts
+- elegantly handle multiple cursors
 - render ligatures
+- support [elastic tabstops](http://nickgravgaard.com/elastic-tabstops/)
 
 ## Contributing
 See [CONTRIBUTING.md](CONTRIBUTING.md).
