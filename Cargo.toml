@@ -5,13 +5,22 @@ authors = ["zovt <zovt@posteo.de>"]
 license = "GPL-3.0"
 
 links = "harfbuzz freetype2"
-build="build.rs"
+build = "build.rs"
 
 [dependencies]
 glium = "0.20.0"
 cgmath = "0.16.0"
 clap = "2.29.0"
 freetype = "0.3.0"
+toml = "0.4.6"
+serde = "1.0.57"
+serde_derive = "1.0.57"
+cfg-if = "0.1"
+failure = "0.1.1"
+
+[target.'cfg(unix)'.dependencies]
+servo-fontconfig = "^0.4.0"
+xdg = "^2.1"
 
 [build-dependencies]
 bindgen = "0.32.3"

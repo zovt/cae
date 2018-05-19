@@ -4,16 +4,202 @@ extern crate clap;
 extern crate freetype;
 #[macro_use]
 extern crate glium;
+extern crate toml;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+#[macro_use]
+extern crate cfg_if;
+#[macro_use]
+extern crate failure;
 
 mod hb_raw;
 
 use cgmath::One;
 use freetype::freetype::*;
 use hb_raw::*;
+use failure::{Fail, Error, err_msg};
+use serde::de;
+use serde::ser;
+
 use std::collections::HashMap;
-use std::ffi;
-use std::fs::File;
+use std::fs::{read_to_string, create_dir, File};
 use std::io::prelude::*;
+use std::ffi;
+use std::fmt;
+
+mod plat_s {
+	use failure::{Fail, Error};
+	use std::path::PathBuf;
+	use std::convert::From;
+	use std::fmt::Display;
+
+	pub trait FontMatcher {
+		fn lookup_font_name(&mut self, font_name: &str) -> Result<Option<PathBuf>, Error>;
+	}
+	
+	cfg_if! {
+		if #[cfg(unix)] {
+			extern crate fontconfig as fc_base;
+			extern crate xdg;
+
+			use std::ffi;
+			use self::fc_base::fontconfig;
+
+			#[derive(Fail, Debug)]
+			#[fail(display = "Error loading XDG directories: {:?}", error)]
+			pub struct Wrapped {
+				error: xdg::BaseDirectoriesError,
+			}
+
+			impl From<xdg::BaseDirectoriesError> for Wrapped {
+				fn from(error: xdg::BaseDirectoriesError) -> Self {
+					Wrapped { error }
+				}
+			}
+
+			pub fn get_config_dir() -> Result<PathBuf, Error> {
+				let xdg_dirs = xdg::BaseDirectories::with_prefix("cae")?;				
+
+				Ok(xdg_dirs.get_config_home())
+			}
+
+			struct UnixFontMatcher {
+				config: *mut fontconfig::FcConfig,
+			}
+
+			impl Drop for UnixFontMatcher {
+				fn drop(&mut self) {
+					unsafe {
+						fontconfig::FcConfigDestroy(self.config);
+					}
+				}
+			}
+
+			impl FontMatcher for UnixFontMatcher {				
+				fn lookup_font_name(&mut self, font_name: &str) -> Result<Option<PathBuf>, Error> {
+					use std::ffi as ffi;
+					use std;
+
+					let mut fc_result = fontconfig::FcResultNoMatch;
+					let mut pattern = unsafe {
+						let mut pattern = fontconfig::FcNameParse(
+							(ffi::CString::new(font_name)?).as_ptr() as *const u8
+						);
+						fontconfig::FcConfigSubstitute(self.config, pattern, fontconfig::FcMatchPattern);
+						fontconfig::FcDefaultSubstitute(pattern);
+						pattern
+					};
+
+					let res = unsafe { fontconfig::FcFontMatch(self.config, pattern, &mut fc_result) };
+					let ret = if !res.is_null() {
+						let mut file: *mut fontconfig::FcChar8 = std::ptr::null_mut();
+						
+						let ret = if unsafe {
+							// FIXME: 2nd argument is manually pulled from source
+							fontconfig::FcPatternGetString(
+								res,
+								(ffi::CString::new("file")?).as_ptr(),
+								0,
+								&mut file as *mut *mut u8
+							)
+						} == fontconfig::FcResultMatch {
+							Ok(Some(PathBuf::from(unsafe {
+								ffi::CString::from_raw(file as *mut i8).to_str()?
+							})))
+						} else {
+							Ok(None)
+						};
+
+						unsafe { fontconfig::FcPatternDestroy(res) };
+
+						ret
+					} else {
+						Ok(None)
+					};
+
+					unsafe { fontconfig::FcPatternDestroy(pattern) };
+					
+					ret
+				}
+			}
+			
+			pub fn get_font_matcher() -> impl FontMatcher {
+				let config = unsafe { fontconfig::FcInitLoadConfigAndFonts() };
+				
+				UnixFontMatcher {
+					config
+				}
+			}
+		}
+	}
+}
+
+use plat_s::FontMatcher;
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+struct HexColor {
+	value: u32,
+}
+
+impl From<u32> for HexColor {
+	fn from(value: u32) -> Self {
+		HexColor { value }
+	}
+}
+
+struct HexColorVisitor;
+
+impl<'de> de::Visitor<'de> for HexColorVisitor {
+	type Value = HexColor;
+
+	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+		formatter.write_str("a color defined in hex like 0x000000")
+	}
+
+	fn visit_str<E>(self, value: &str) -> Result<HexColor, E>
+		where E: de::Error {
+		Ok(HexColor {
+			value: u32::from_str_radix(
+				if value.starts_with("0x") { &value[2..] }
+				else if value.starts_with("#") { &value[1..] }
+				else { return Err(de::Error::custom("Invalid prefix for hex string")) },
+				16
+			).map_err(de::Error::custom)?,
+		})
+	}
+}
+
+impl<'de> de::Deserialize<'de> for HexColor {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where  D: de::Deserializer<'de> {
+		deserializer.deserialize_str(HexColorVisitor)
+	}
+}
+
+impl ser::Serialize for HexColor {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where S: ser::Serializer {
+    serializer.serialize_str(&format!("0x{:06X}", self.value))
+  }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct Config {
+	pub fonts: Vec<String>, // can provide fallback fonts
+	pub fg: HexColor,
+	pub bg: HexColor,
+}
+
+impl Default for Config {
+	fn default() -> Self {
+		Config {
+			fonts: vec!("mono".into(), "Courier".into()),
+			fg: 0xFFFFFF.into(),
+			bg: 0x000000.into(),
+		}
+	}
+}
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -51,14 +237,36 @@ impl<'a> glium::texture::Texture2dDataSource<'a> for GlyphImg<'a> {
 	}
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
 	let matches = clap_app!(cae =>
 		(version: "cae 0.0.1")
 		(author: "zovt <zovt@posteo.de>")
 		(@arg file: +takes_value)
 	).get_matches();
 
-	let path = matches.value_of("file").unwrap();
+	let path = matches.value_of("file").expect("Missing file");
+
+	// handle config
+	let mut config_path = plat_s::get_config_dir()?;
+	if !config_path.exists() {
+		create_dir(&config_path)?;
+	}
+	config_path.push("cae.toml");
+	if !config_path.exists() {
+		let mut file = File::create(&config_path)?;
+		file.write_all((toml::to_string_pretty(&Config::default())?).as_bytes())?;
+	}
+	let config: Config = toml::from_str(&read_to_string(config_path)?)?;
+	
+	let mut font_matcher = plat_s::get_font_matcher();
+	let font_path = config.fonts.iter()
+		.map(|name| font_matcher.lookup_font_name(name))
+		.map(|res| { match res {
+			Err(e) => { println!("{}", e); Err(e) },
+			o => o,
+		} })
+		.filter_map(Result::ok)
+		.nth(0);
 
 	use glium::Surface;
 	use glium::glutin;
@@ -216,10 +424,11 @@ fn main() {
 			}
 
 			let start = idx;
-			while !c.is_whitespace() && idx < text.len() {
-				idx += 1;
+			while {
 				c = text.chars().nth(idx).unwrap();
-			}
+				idx += 1;
+				!c.is_whitespace() && idx < text.len()
+			} {};
 			let end = idx;
 
 			// render previous "word"
@@ -327,4 +536,6 @@ fn main() {
 		hb_buffer_destroy(hb_buf);
 		FT_Done_Library(ft_lib);
 	};
+
+	Ok(())
 }
