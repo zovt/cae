@@ -27,6 +27,7 @@ use std::fs::{read_to_string, create_dir, File};
 use std::io::prelude::*;
 use std::ffi;
 use std::fmt;
+use std::path::PathBuf;
 
 mod plat_s {
 	use failure::{Fail, Error};
@@ -142,6 +143,18 @@ struct HexColor {
 	value: u32,
 }
 
+impl HexColor {
+	pub fn red(self) -> u8 {
+		((self.value >> 16) & 0xFF) as u8
+	}
+	pub fn green(self) -> u8 {
+		((self.value >> 8) & 0xFF) as u8
+	}
+	pub fn blue(self) -> u8 {
+		((self.value) & 0xFF) as u8
+	}
+}
+
 impl From<u32> for HexColor {
 	fn from(value: u32) -> Self {
 		HexColor { value }
@@ -189,6 +202,8 @@ struct Config {
 	pub fonts: Vec<String>, // can provide fallback fonts
 	pub fg: HexColor,
 	pub bg: HexColor,
+	pub tab_size: u8,
+	pub font_size: u8,
 }
 
 impl Default for Config {
@@ -197,6 +212,8 @@ impl Default for Config {
 			fonts: vec!("mono".into(), "Courier".into()),
 			fg: 0xFFFFFF.into(),
 			bg: 0x000000.into(),
+			tab_size: 2,
+			font_size: 16,
 		}
 	}
 }
@@ -237,6 +254,7 @@ impl<'a> glium::texture::Texture2dDataSource<'a> for GlyphImg<'a> {
 	}
 }
 
+// FIXME: bitmaps are broken?
 fn main() -> Result<(), Error> {
 	let matches = clap_app!(cae =>
 		(version: "cae 0.0.1")
@@ -259,14 +277,16 @@ fn main() -> Result<(), Error> {
 	let config: Config = toml::from_str(&read_to_string(config_path)?)?;
 	
 	let mut font_matcher = plat_s::get_font_matcher();
-	let font_path = config.fonts.iter()
+	let font_path: PathBuf = config.fonts.iter()
 		.map(|name| font_matcher.lookup_font_name(name))
 		.map(|res| { match res {
 			Err(e) => { println!("{}", e); Err(e) },
 			o => o,
 		} })
 		.filter_map(Result::ok)
-		.nth(0);
+		.filter_map(|o| o)
+		.nth(0)
+		.ok_or_else(|| err_msg("Failed to match any font names"))?;
 
 	use glium::Surface;
 	use glium::glutin;
@@ -274,7 +294,7 @@ fn main() -> Result<(), Error> {
 	let (mut win_w, mut win_h) = (800f32, 600f32);
 
 	// Font stuff
-	let px_sz = 18;
+	let px_sz = config.font_size as u32;
 
 	let mut ft_lib: FT_Library = std::ptr::null_mut();
 	unsafe {
@@ -284,9 +304,10 @@ fn main() -> Result<(), Error> {
 	unsafe {
 		FT_New_Face(
 			ft_lib,
-			ffi::CString::new("fonts/Hasklig-Regular.otf")
-				.unwrap()
-				.as_ptr(),
+			(ffi::CString::new(
+				font_path.to_str()
+					.ok_or(err_msg("Invalid characters in filename"))?
+			)?).as_ptr(),
 			0,
 			&mut ft_face as *mut FT_Face,
 		);
@@ -350,7 +371,7 @@ fn main() -> Result<(), Error> {
 		let g_idx = FT_Get_Char_Index(ft_face, ' ' as u64);
 		FT_Load_Glyph(ft_face, g_idx, 0);
 		let space_width = (*(*ft_face).glyph).metrics.horiAdvance;
-		(space_width as f32 / 64.0, 2.0 * (space_width as f32 / 64.0))
+		(space_width as f32 / 64.0, config.tab_size as f32 * (space_width as f32 / 64.0))
 	};
 
 	let mut exit = false;
@@ -388,7 +409,12 @@ fn main() -> Result<(), Error> {
 		});
 
 		let mut target = display.draw();
-		target.clear_color(1.0, 1.0, 1.0, 1.0);
+		target.clear_color(
+			(config.bg.red() as f32) / 255.0,
+			(config.bg.green() as f32) / 255.0,
+			(config.bg.blue() as f32) / 255.0,
+			1.0
+		);
 
 		let mut pen = (0.0, px_sz as f32);
 		let mut idx = 0;
@@ -466,6 +492,14 @@ fn main() -> Result<(), Error> {
 					let ft_glyph = unsafe { (*(*ft_face).glyph) };
 					let ft_bitmap = ft_glyph.bitmap;
 
+					println!("{}", glyph.codepoint);
+					for y in 0..ft_bitmap.rows {
+						for x in 0..ft_bitmap.width {
+							print!("{:06x} ", unsafe { *(ft_bitmap.buffer.offset(x as isize + y as isize * ft_bitmap.width as isize)) });
+						}
+						println!("");
+					}
+
 					let glyph_img = GlyphImg {
 						data: unsafe {
 							std::slice::from_raw_parts(
@@ -510,7 +544,16 @@ fn main() -> Result<(), Error> {
 					world: world_ref,
 					transform: transform_ref,
 					glyph: &g_d_info.tex,
-					color: [0.0, 0.0, 0.0f32]
+					fg: [
+						config.fg.red() as f32 / 255.0,
+						config.fg.green() as f32 / 255.0,
+						config.fg.blue() as f32 / 255.0
+					],
+					bg: [
+						config.bg.red() as f32 / 255.0,
+						config.bg.green() as f32 / 255.0,
+						config.bg.blue() as f32 / 255.0
+					],
 				};
 				target
 					.draw(

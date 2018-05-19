@@ -5,6 +5,8 @@ in vec2 f_uv;
 out vec4 color;
 
 uniform sampler2D glyph;
+uniform vec3 fg;
+uniform vec3 bg;
 
 vec4 lerp(vec4 a, vec4 b, float ratio) {
 	return vec4(
@@ -16,5 +18,5 @@ vec4 lerp(vec4 a, vec4 b, float ratio) {
 }
 
 void main() {
-	color = lerp(vec4(1.0, 1.0, 1.0, 1.0), vec4(f_color, 1.0), texture(glyph, f_uv).x);
+	color = lerp(vec4(bg, 1.0), vec4(fg, 1.0), texture(glyph, f_uv).x);
 }
