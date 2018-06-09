@@ -11,7 +11,11 @@ struct Buf {
 	SliceMut<T> data;
 	size_t used;
 
-	Err write(const Slice<T> in) {
+	void clear() {
+		this->used = 0;
+	}
+
+	Err write(Slice<T> in) {
 		if (this->data.len - this->used < in.len) {
 			return Err::BUF_NOT_BIG_ENOUGH;
 		}
@@ -21,7 +25,7 @@ struct Buf {
 		return Err::OK;
 	}
 
-	size_t write_cap(const Slice<T> in) {
+	size_t write_cap(Slice<T> in) {
 		const size_t buf_free = this->data.len - this->used;
 		const size_t write_sz = buf_free < in.len ? buf_free : in.len;
 

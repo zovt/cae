@@ -13,13 +13,13 @@ static Err get_config_path(StrBuf* out) {
 
 	if (xdg_config) {
 		check_err(out->write(str_from_c_str(xdg_config)));
-		return out->write(str("/cae/config.json"));
+		return out->write(str("/cae/cae.toml"));
 	}
 
 	const char* home = getenv("HOME");
 	if (home) {
 		check_err(out->write(str_from_c_str(home)));
-		return out->write(str("/.config/cae/config.json"));
+		return out->write(str("/.config/cae/cae.toml"));
 	}
 
 	return Err::PATH_NOT_FOUND;
