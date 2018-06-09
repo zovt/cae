@@ -1,4 +1,4 @@
-CXXFLAGS := -std=c++14 -Wall -Wextra -Wpedantic -fno-exceptions ${CXXFLAGS} -I./lib/cjson
+CXXFLAGS := -std=c++14 -Wall -Wextra -Wpedantic -fno-exceptions ${CXXFLAGS} -I./lib/tinytoml/include
 LDFLAGS := ${LDFLAGS}
 
 src = $(wildcard src/*.cc)
@@ -13,11 +13,8 @@ build:
 build/%.o: src/%.cc $(headers)
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
-build/cae: $(obj) build/cjson.o
+build/cae: $(obj)
 	$(CXX) -o $@ $^ $(LDFLAGS)
-
-build/cjson.o:
-	$(CXX) -c -o $@ lib/cjson/cJSON.c $(CXXFLAGS)
 
 .PHONY: clean
 
