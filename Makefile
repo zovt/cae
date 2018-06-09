@@ -1,4 +1,4 @@
-CXXFLAGS := -std=c++14 -Wall -Wextra -Wpedantic -fno-exceptions ${CXXFLAGS} -I./lib/tinytoml/include
+CXXFLAGS := -std=c++14 -Wall -Wextra -Wpedantic -fno-exceptions ${CXXFLAGS} -I./lib/cpptoml/include
 LDFLAGS := ${LDFLAGS}
 
 src = $(wildcard src/*.cc)
