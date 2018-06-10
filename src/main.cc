@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <cpptoml.h>
 #include <string>
+#include <vector>
 
 #include "plat.hh"
 #include "str.hh"
@@ -35,6 +36,11 @@ Err run() {
 	if (bg) {
 		const char* bg_str = bg->c_str();
 		check_err(rgb_color_from_str(str_from_c_str(bg_str), &conf.bg));
+	}
+
+	auto font_names = conf_toml->get_array_of<std::string>("fonts");
+	if (font_names) {
+		conf.fonts = slice_from_ptr(font_names->data(), font_names->size());
 	}
 
 	return Err::OK;

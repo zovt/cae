@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "color.hh"
 
 Err rgb_color_from_str(Str raw, RGBColor* out) {
@@ -15,12 +14,12 @@ Err rgb_color_from_str(Str raw, RGBColor* out) {
 		return Err::COLOR_FAILED_TO_PARSE;
 	}
 
-	uint8_t buf[sizeof(long) / sizeof(uint8_t)] = {0};
+	uint8_t buf[3] = {0};
 	*((long*)(buf)) = strtoul(numbers.data, NULL, 16);
 
-	out->red = buf[sizeof(buf) - 3];
-	out->green = buf[sizeof(buf) - 2];
-	out->blue = buf[sizeof(buf) - 1];
+	out->red = buf[2];
+	out->green = buf[1];
+	out->blue = buf[0];
 
 	return Err::OK;
 }

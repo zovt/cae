@@ -1,4 +1,4 @@
-CXXFLAGS := -std=c++14 -Wall -Wextra -Wpedantic ${CXXFLAGS} -I./lib/cpptoml/include
+CXXFLAGS := -std=c++14 -g -Wall -Wextra -Wpedantic ${CXXFLAGS} -I./lib/cpptoml/include
 LDFLAGS := ${LDFLAGS}
 
 src = $(wildcard src/*.cc)

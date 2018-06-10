@@ -30,8 +30,8 @@ struct Slice {
 
 template <class T>
 Slice<T> slice_from_ptr(const T* ptr, size_t len) {
-	Slice<T> ret = {0};
-	ret.ptr = ptr;
+	Slice<T> ret = {};
+	ret.data = ptr;
 	ret.len = len;
 
 	return ret;
@@ -45,8 +45,8 @@ struct SliceMut {
 
 template <class T>
 SliceMut<T> slice_mut_from_ptr(T* ptr, size_t len) {
-	SliceMut<T> ret = {0};
-	ret.ptr = ptr;
+	SliceMut<T> ret = {};
+	ret.data = ptr;
 	ret.len = len;
 
 	return ret;
