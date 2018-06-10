@@ -34,6 +34,13 @@ struct Buf {
 		this->used += write_sz;
 		return write_sz;
 	}
+
+	SliceMut<T> to_slice() const {
+		SliceMut<T> ret = {};
+		ret.data = this->data.data;
+		ret.len = this->used;
+		return ret;
+	}
 };
 
 template <typename T>

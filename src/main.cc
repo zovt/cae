@@ -46,7 +46,7 @@ Err run() {
 	stack_buf(font_path, char, 500);
 	check_err(get_closest_font_match(conf.fonts, &font_path));
 
-	fprintf(stdout, "%s\n", str_to_c_str(font_path.data.to_const()));
+	fprintf(stdout, "%s\n", str_to_c_str(font_path.to_slice().to_const()));
 
 	return Err::OK;
 }
