@@ -43,6 +43,11 @@ Err run() {
 		conf.fonts = slice_from_ptr(font_names->data(), font_names->size());
 	}
 
+	stack_buf(font_path, char, 500);
+	check_err(get_closest_font_match(conf.fonts, &font_path));
+
+	fprintf(stdout, "%s\n", str_to_c_str(font_path.data.to_const()));
+
 	return Err::OK;
 }
 

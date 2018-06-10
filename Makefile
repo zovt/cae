@@ -1,5 +1,7 @@
-CXXFLAGS := -std=c++14 -g -Wall -Wextra -Wpedantic ${CXXFLAGS} -I./lib/cpptoml/include
-LDFLAGS := ${LDFLAGS}
+CXXFLAGS := -std=c++14 -g -Wall -Wextra \
+	-Wpedantic ${CXXFLAGS} -I./lib/cpptoml/include \
+	$(shell pkg-config --cflags fontconfig)
+LDFLAGS := ${LDFLAGS} $(shell pkg-config --libs fontconfig)
 
 src = $(wildcard src/*.cc)
 headers = $(wildcard src/*.hh)

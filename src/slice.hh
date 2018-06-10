@@ -41,6 +41,13 @@ template <class T>
 struct SliceMut {
 	T* data;
 	size_t len;
+
+	Slice<T> to_const() const {
+		Slice<T> ret = {};
+		ret.data = this->data;
+		ret.len = this->len;
+		return ret;
+	}
 };
 
 template <class T>

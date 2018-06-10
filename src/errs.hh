@@ -1,9 +1,11 @@
 #pragma once
 
+#include "macros.hh"
+
 #define check_err(err)\
-	Err e = err;\
-	if ((int)e) {\
-		return e; \
+	Err CAT(__e_, __LINE__) = err;\
+	if ((int)CAT(__e_, __LINE__)) {\
+		return CAT(__e_, __LINE__); \
 	}
 
 enum class Err {
@@ -17,4 +19,6 @@ enum class Err {
 	COLOR_FAILED_TO_PARSE,
 	// Slices
 	SLICE_INDEX_OUT_OF_RANGE = 400,
+	// Fonts
+	FONT_LOOKUP_ERR = 500,
 };

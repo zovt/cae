@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "macros.hh"
 #include "errs.hh"
 #include "slice.hh"
 
@@ -43,9 +44,6 @@ Buf<T> make_buf(T* buf, size_t sz) {
 	ret.used = 0;
 	return ret;
 }
-
-#define CAT(a, ...) PRIMITIVE_CAT(a, __VA_ARGS__)
-#define PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 
 #define stack_buf(name, T, sz)\
 	T CAT(__ ## buf ## __, __LINE__) [sz] = {};\
