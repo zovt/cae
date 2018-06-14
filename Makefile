@@ -1,5 +1,6 @@
-CXXFLAGS := -std=c++14 -g -Wall -Wextra \
-	-Wpedantic ${CXXFLAGS} -I./lib/cpptoml/include \
+CXXFLAGS := -std=c++17 -g -Wall -Wextra \
+	-Wpedantic ${CXXFLAGS} \
+	-fno-exceptions \
 	$(shell pkg-config --cflags fontconfig)
 LDFLAGS := ${LDFLAGS} $(shell pkg-config --libs fontconfig)
 

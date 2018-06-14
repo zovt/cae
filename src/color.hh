@@ -1,15 +1,17 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <string_view>
 
-#include "str.hh"
-#include "buf.hh"
+#include "err.hh"
 
 struct RGBColor {
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
-};
 
-Err rgb_color_from_str(Str raw, RGBColor* out);
+	constexpr RGBColor(uint8_t red, uint8_t green, uint8_t blue)
+		: red(red), green(green), blue(blue) {}
+
+	static Result<RGBColor> from_str(std::string_view raw);
+};

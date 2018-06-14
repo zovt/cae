@@ -1,63 +1,35 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <cpptoml.h>
 #include <string>
 #include <vector>
+#include <variant>
+#include <iostream>
 
-#include "plat.hh"
-#include "str.hh"
+#include "unit.hh"
 #include "config.hh"
+#include "color.hh"
+#include "fonts.hh"
 
-Err run() {
-	stack_buf(path, char, 500);
-	check_err(get_config_path(&path));
+static const Config conf(
+	{"Iosevka Term"},
+	RGBColor(255, 255, 255),
+	RGBColor(30, 30, 30),
+	2,
+	16
+);
 
-	auto conf_toml = cpptoml::parse_file(str_mut_to_c_str(path.data));
-	Config conf = {};
+Result<Unit> run() {
+	try(auto font_path, get_closest_font_match(conf.fonts));
+	std::cout << font_path << std::endl;
 
-	auto tab_size = conf_toml->get_as<uint8_t>("tab_size");
-	if (tab_size) {
-		conf.tab_size = *tab_size;
-	}
-
-	auto font_size = conf_toml->get_as<uint8_t>("font_size");
-	if (font_size) {
-		conf.font_size = *font_size;
-	}
-
-	auto fg = conf_toml->get_as<std::string>("fg");
-	if (fg) {
-		const char* fg_str = fg->c_str();
-		check_err(rgb_color_from_str(str_from_c_str(fg_str), &conf.fg));
-	}
-
-	auto bg = conf_toml->get_as<std::string>("bg");
-	if (bg) {
-		const char* bg_str = bg->c_str();
-		check_err(rgb_color_from_str(str_from_c_str(bg_str), &conf.bg));
-	}
-
-	auto font_names = conf_toml->get_array_of<std::string>("fonts");
-	if (font_names) {
-		conf.fonts = slice_from_ptr(font_names->data(), font_names->size());
-	}
-
-	stack_buf(font_path, char, 500);
-	check_err(get_closest_font_match(conf.fonts, &font_path));
-
-	fprintf(stdout, "%s\n", str_to_c_str(font_path.to_slice().to_const()));
-
-	return Err::OK;
+	return unit;
 }
 
 int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
 
-	Err e = run();
-	if (e != Err::OK) {
-		fprintf(stdout, "Error encountered while running: %d. See errs.hh for details\n", (int)e);
+	auto out = run();
+	if (std::holds_alternative<Err>(out)) {
+		std::cout << std::get<Err>(out) << std::endl;
 	}
 	return 0;
 }

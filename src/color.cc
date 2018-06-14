@@ -1,25 +1,29 @@
 #include "color.hh"
 
-Err rgb_color_from_str(Str raw, RGBColor* out) {
-	if (!(raw.len == 8 || raw.len == 7)) {
-		return Err::COLOR_PARSE_STR_NOT_LONG_ENOUGH;
+#include <cstdlib>
+
+Result<RGBColor> RGBColor::from_str(std::string_view raw) {
+	using namespace std::literals;
+
+	if (!(raw.length() == 8 || raw.length() == 7)) {
+		return "Color string not long enough"sv;
 	}
 
-	Str numbers;
-	if (raw.data[1] == 'x') {
-		check_err(raw.sub(2, &numbers));
-	} else if (raw.data[0] == '#') {
-		check_err(raw.sub(1, &numbers));
+	std::string_view numbers;
+	if (raw[1] == 'x') {
+		numbers = raw.substr(2, raw.length());
+	} else if (raw[0] == '#') {
+		numbers = raw.substr(1, raw.length());
 	} else {
-		return Err::COLOR_FAILED_TO_PARSE;
+		return "Color in improper format"sv;
 	}
 
 	uint8_t buf[3] = {0};
-	*((long*)(buf)) = strtoul(numbers.data, NULL, 16);
+	*((long*)(buf)) = strtoul((const char*)numbers.data(), NULL, 16);
 
-	out->red = buf[2];
-	out->green = buf[1];
-	out->blue = buf[0];
-
-	return Err::OK;
+	return RGBColor(
+		buf[2],
+		buf[1],
+		buf[0]
+	);
 }
