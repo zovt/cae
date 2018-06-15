@@ -11,7 +11,7 @@
 namespace fonts {
 
 #ifdef UNIX
-static Result<std::string> get_closest_font_match(
+static err::Result<std::string> get_closest_font_match(
 	const std::vector<std::string>& font_names
 ) {
 	using namespace std::literals;

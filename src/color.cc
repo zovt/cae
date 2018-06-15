@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 using namespace color;
+using namespace err;
 
 Result<RGBColor> RGBColor::from_str(std::string_view raw) {
 	using namespace std::literals;

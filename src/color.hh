@@ -15,7 +15,7 @@ struct RGBColor {
 	constexpr RGBColor(uint8_t red, uint8_t green, uint8_t blue)
 		: red(red), green(green), blue(blue) {}
 
-	static Result<RGBColor> from_str(std::string_view raw);
+	static err::Result<RGBColor> from_str(std::string_view raw);
 };
 
 }

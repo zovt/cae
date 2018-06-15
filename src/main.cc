@@ -16,10 +16,13 @@
 #include "config.hh"
 #include "color.hh"
 #include "fonts.hh"
+#include "defer.hh"
 
 using namespace config;
 using namespace color;
 using namespace fonts;
+using namespace err;
+using namespace defer;
 
 static const std::vector<const char*> validation_layers = {
 	"VK_LAYER_LUNARG_standard_validation",
@@ -135,6 +138,18 @@ Result<Unit> run() {
 	defer([&]() { vkDestroyInstance(instance, nullptr); });
 
 	VkDebugReportCallbackEXT callback;
+	const auto vk_clean_callback = [&]() {
+		if (enable_validation) {
+			auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(
+				instance,
+				"vkDestroyDebugReportCallbackEXT"
+				);
+			if (func != nullptr) {
+				func(instance, callback, nullptr);
+			}
+		}
+	};
+	defer(vk_clean_callback);
 	if (enable_validation) {
 		VkDebugReportCallbackCreateInfoEXT debug_info = {};
 		debug_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
@@ -153,19 +168,18 @@ Result<Unit> run() {
 		}
 	}
 
+	VkPhysicalDevice phys_dev = VK_NULL_HANDLE;
+	uint32_t dev_count = 0;
+	vkEnumeratePhysicalDevices(instance, &dev_count, nullptr);
+	if (dev_count == 0) {
+		return "0 vulkan devices found"sv;
+	}
+	std::vector<VkPhysicalDevice> devs(dev_count);
+	vkEnumeratePhysicalDevices(instance, &dev_count, devs.data());
+
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
-	}
-
-	if (enable_validation) {
-		auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(
-			instance,
-			"vkDestroyDebugReportCallbackEXT"
-		);
-		if (func == nullptr) {
-			return "Couldn't destroy vulkan debug callback"sv;
-		}
-		func(instance, callback, nullptr);
 	}
 
 	return unit;
