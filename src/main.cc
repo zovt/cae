@@ -72,6 +72,11 @@ Result<Unit> run() {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	auto window = glfwCreateWindow(800, 600, "cae", nullptr, nullptr);
 
+	defer([&]() {
+		glfwDestroyWindow(window);
+		glfwTerminate();
+	});
+
 	VkApplicationInfo app_info = {};
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = "cae";
@@ -127,6 +132,7 @@ Result<Unit> run() {
 	if (vkCreateInstance(&create_info, nullptr, &instance) != VK_SUCCESS) {
 		return "Failed to create vulkan instance"sv;
 	}
+	defer([&]() { vkDestroyInstance(instance, nullptr); });
 
 	VkDebugReportCallbackEXT callback;
 	if (enable_validation) {
@@ -161,10 +167,6 @@ Result<Unit> run() {
 		}
 		func(instance, callback, nullptr);
 	}
-	vkDestroyInstance(instance, nullptr);
-
-	glfwDestroyWindow(window);
-	glfwTerminate();
 
 	return unit;
 }
