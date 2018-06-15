@@ -2,6 +2,8 @@
 
 #include <cstdlib>
 
+using namespace color;
+
 Result<RGBColor> RGBColor::from_str(std::string_view raw) {
 	using namespace std::literals;
 

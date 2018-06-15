@@ -5,6 +5,8 @@
 
 #include "err.hh"
 
+namespace color {
+
 struct RGBColor {
 	uint8_t red;
 	uint8_t green;
@@ -15,3 +17,5 @@ struct RGBColor {
 
 	static Result<RGBColor> from_str(std::string_view raw);
 };
+
+}

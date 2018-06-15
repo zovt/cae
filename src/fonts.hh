@@ -8,6 +8,7 @@
 #include "plat.hh"
 #include "err.hh"
 
+namespace fonts {
 
 #ifdef UNIX
 static Result<std::string> get_closest_font_match(
@@ -42,3 +43,5 @@ static Result<std::string> get_closest_font_match(
 	return "Couldn't find font"sv;
 }
 #endif
+
+}

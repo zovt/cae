@@ -6,18 +6,22 @@
 
 #include "color.hh"
 
+namespace config {
+
 struct Config {
 	std::vector<std::string> fonts;
-	RGBColor fg;
-	RGBColor bg;
+	color::RGBColor fg;
+	color::RGBColor bg;
 	uint8_t tab_size;
 	uint8_t font_size;
 
 	Config(
 		std::vector<std::string>&& fonts,
-		RGBColor fg,
-		RGBColor bg,
+		color::RGBColor fg,
+		color::RGBColor bg,
 		uint8_t tab_size,
 		uint8_t font_size
 	);
 };
+
+}

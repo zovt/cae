@@ -8,6 +8,10 @@
 #include "color.hh"
 #include "fonts.hh"
 
+using namespace config;
+using namespace color;
+using namespace fonts;
+
 static const Config conf(
 	{"Iosevka Term"},
 	RGBColor(255, 255, 255),
