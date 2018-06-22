@@ -41,7 +41,7 @@ Result<Unit> run() {
 	Window window(800, 600, "cae");
 
 	try(auto vk_res, VulkanResources::create());
-	defer([&](){ vk_res.destroy(); });
+	defer([&](){ vk_res.destroy(); }); // TODO: Maybe figure out RAII here?
 
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwPollEvents();

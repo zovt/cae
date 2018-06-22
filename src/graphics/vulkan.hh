@@ -15,7 +15,9 @@ namespace vulkan {
 struct VulkanResources {
 	VkInstance instance;
 	VkDebugReportCallbackEXT dbg_cb;
-	VkPhysicalDevice dev;
+	VkPhysicalDevice phys_dev;
+	VkDevice log_dev;
+	VkQueue gfx_queue;
 
 	static err::Result<VulkanResources> create();
 

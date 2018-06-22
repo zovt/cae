@@ -41,6 +41,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 	return VK_FALSE;
 }
 
+// FIXME: Break these sections up with subscopes
 err::Result<VulkanResources> VulkanResources::create() {
 	using namespace std::literals;
 
@@ -127,11 +128,66 @@ err::Result<VulkanResources> VulkanResources::create() {
 	std::vector<VkPhysicalDevice> devs(dev_count);
 	vkEnumeratePhysicalDevices(result.instance, &dev_count, devs.data());
 
-	return std::move(result);
+	// FIXME: better heuristic to determine vulkan device
+	// For now, use the first device
+	result.phys_dev = devs[0];
+	if (result.phys_dev == VK_NULL_HANDLE) {
+		return "Couldn't get device handle"sv;
+	}
+
+	uint32_t queue_family_count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(result.phys_dev, &queue_family_count, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(result.phys_dev, &queue_family_count, queue_families.data());
+
+	int32_t queue_idx = -1;
+	for (size_t i = 0; i < queue_families.size(); ++i) {
+		auto const& queue_family = queue_families[i];
+		if (queue_family.queueCount > 0 && queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			queue_idx = i;
+			break;
+		}
+	}
+	if (queue_idx == -1) {
+		return "Selected device has no suitable queue"sv;
+	}
+
+	VkDeviceQueueCreateInfo queue_create_info = {};
+	queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queue_create_info.queueFamilyIndex = queue_idx;
+	queue_create_info.queueCount = 1;
+	float queue_pri = 1.0f;
+	queue_create_info.pQueuePriorities = &queue_pri;
+
+	VkPhysicalDeviceFeatures dev_features = {};
+
+	VkDeviceCreateInfo dev_create_info = {};
+	dev_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	dev_create_info.pQueueCreateInfos = &queue_create_info;
+	dev_create_info.queueCreateInfoCount = 1;
+	dev_create_info.pEnabledFeatures = &dev_features;
+	dev_create_info.enabledLayerCount = 0;
+	if (enable_validation) {
+		dev_create_info.enabledLayerCount = static_cast<uint32_t>(validation_layers.size());
+		dev_create_info.ppEnabledLayerNames = validation_layers.data();
+	}
+	if (vkCreateDevice(result.phys_dev, &dev_create_info, nullptr, &result.log_dev) != VK_SUCCESS) {
+		return "Failed to create logical device"sv;
+	}
+
+	vkGetDeviceQueue(result.log_dev, queue_idx, 0, &result.gfx_queue);
+
+	// We made it!
+
+	return result;
 }
 
 Result<Unit> VulkanResources::destroy() {
 	using namespace std::literals;
+
+	vkDestroyDevice(this->log_dev, nullptr);
+
 	if (enable_validation) {
 		auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(
 			instance,
