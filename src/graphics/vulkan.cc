@@ -1,12 +1,14 @@
 #include "vulkan.hh"
 
 #include <vector>
+#include <set>
 #include <iostream>
 #include <string_view>
 #include <utility>
 
 using namespace vulkan;
 using namespace err;
+using namespace window;
 
 static const std::vector<const char*> validation_layers = {
 	"VK_LAYER_LUNARG_standard_validation",
@@ -42,7 +44,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 }
 
 // FIXME: Break these sections up with subscopes
-err::Result<VulkanResources> VulkanResources::create() {
+err::Result<VulkanResources> VulkanResources::create(Window const& window) {
 	using namespace std::literals;
 
 	VulkanResources result = {};
@@ -120,6 +122,10 @@ err::Result<VulkanResources> VulkanResources::create() {
 		}
 	}
 
+	if (glfwCreateWindowSurface(result.instance, window.handle, nullptr, &result.surf) != VK_SUCCESS) {
+		return "Failed to create window surface"sv;
+	}
+
 	uint32_t dev_count = 0;
 	vkEnumeratePhysicalDevices(result.instance, &dev_count, nullptr);
 	if (dev_count == 0) {
@@ -141,31 +147,53 @@ err::Result<VulkanResources> VulkanResources::create() {
 	std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
 	vkGetPhysicalDeviceQueueFamilyProperties(result.phys_dev, &queue_family_count, queue_families.data());
 
-	int32_t queue_idx = -1;
+	int32_t gfx_queue_idx = -1;
+	int32_t pres_queue_idx = -1;
 	for (size_t i = 0; i < queue_families.size(); ++i) {
 		auto const& queue_family = queue_families[i];
-		if (queue_family.queueCount > 0 && queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-			queue_idx = i;
+
+		VkBool32 pres_support = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(result.phys_dev, i, result.surf, &pres_support);
+
+		if (queue_family.queueCount > 0) {
+			if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+				gfx_queue_idx = i;
+			}
+			if (pres_support) {
+				pres_queue_idx = i;
+			}
+		}
+
+		if (gfx_queue_idx != -1 && pres_queue_idx != -1) {
 			break;
 		}
 	}
-	if (queue_idx == -1) {
-		return "Selected device has no suitable queue"sv;
+	if (gfx_queue_idx == -1) {
+		return "Selected device has no suitable gfx queue"sv;
+	}
+	if (pres_queue_idx == -1) {
+		return "Selected device has no suitable pres queue"sv;
 	}
 
-	VkDeviceQueueCreateInfo queue_create_info = {};
-	queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_create_info.queueFamilyIndex = queue_idx;
-	queue_create_info.queueCount = 1;
+	std::set<int> queue_idxs = {gfx_queue_idx, pres_queue_idx};
+	std::vector<VkDeviceQueueCreateInfo> queue_create_infos(queue_idxs.size());
+
 	float queue_pri = 1.0f;
-	queue_create_info.pQueuePriorities = &queue_pri;
+	for (size_t i = 0; i < queue_idxs.size(); i++) {
+		VkDeviceQueueCreateInfo queue_create_info = {};
+		queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queue_create_info.queueFamilyIndex = gfx_queue_idx;
+		queue_create_info.queueCount = 1;
+		queue_create_info.pQueuePriorities = &queue_pri;
+		queue_create_infos[i] = queue_create_info;
+	}
 
 	VkPhysicalDeviceFeatures dev_features = {};
 
 	VkDeviceCreateInfo dev_create_info = {};
 	dev_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	dev_create_info.pQueueCreateInfos = &queue_create_info;
-	dev_create_info.queueCreateInfoCount = 1;
+	dev_create_info.pQueueCreateInfos = queue_create_infos.data();
+	dev_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
 	dev_create_info.pEnabledFeatures = &dev_features;
 	dev_create_info.enabledLayerCount = 0;
 	if (enable_validation) {
@@ -176,7 +204,8 @@ err::Result<VulkanResources> VulkanResources::create() {
 		return "Failed to create logical device"sv;
 	}
 
-	vkGetDeviceQueue(result.log_dev, queue_idx, 0, &result.gfx_queue);
+	vkGetDeviceQueue(result.log_dev, gfx_queue_idx, 0, &result.gfx_queue);
+	vkGetDeviceQueue(result.log_dev, pres_queue_idx, 0, &result.pres_queue);
 
 	// We made it!
 
@@ -200,6 +229,7 @@ Result<Unit> VulkanResources::destroy() {
 		}
 	}
 
+	vkDestroySurfaceKHR(this->instance, this->surf, nullptr);
 	vkDestroyInstance(this->instance, nullptr);
 
 	return unit;

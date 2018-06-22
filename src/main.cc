@@ -40,7 +40,7 @@ Result<Unit> run() {
 
 	Window window(800, 600, "cae");
 
-	try(auto vk_res, VulkanResources::create());
+	try(auto vk_res, VulkanResources::create(window));
 	defer([&](){ vk_res.destroy(); }); // TODO: Maybe figure out RAII here?
 
 	while (!glfwWindowShouldClose(window.handle)) {
