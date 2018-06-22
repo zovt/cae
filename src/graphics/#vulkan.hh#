@@ -1,0 +1,37 @@
+#pragma once
+
+#include <vulkan/vulkan.h>
+#include <vector>
+#include <cstring>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+
+#include "../err.hh"
+
+namespace vulkan {
+
+static const std::vector<const char*> validation_layers = {
+	"VK_LAYER_LUNARG_standard_validation",
+};
+
+#ifdef NDEBUG
+static const bool enable_validation = false;
+#else
+static const bool enable_validation = true;
+#endif
+
+struct VulkanResources {
+	VkInstance instance;
+	VkDebugReportCallbackEXT dbg_cb;
+	VkPhysicalDevice dev;
+
+	
+
+	static err::Result<VulkanResources> create();
+
+	~VulkanResources();
+};
+
+}
