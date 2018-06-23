@@ -23,6 +23,7 @@ struct VulkanResources {
 	VkSurfaceKHR surf;
 	VkSwapchainKHR swapchain;
 	std::vector<VkImage> swapchain_imgs;
+	std::vector<VkImageView> swapchain_img_views;
 	VkFormat swapchain_format;
 	VkExtent2D swapchain_extent;
 

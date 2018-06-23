@@ -324,8 +324,31 @@ err::Result<VulkanResources> VulkanResources::create(Window const& window) {
 	vkGetSwapchainImagesKHR(result.log_dev, result.swapchain, &image_count, nullptr);
 	result.swapchain_imgs.resize(image_count);
 	vkGetSwapchainImagesKHR(result.log_dev, result.swapchain, &image_count, result.swapchain_imgs.data());
+
 	result.swapchain_format = best_format.format;
 	result.swapchain_extent = extent;
+
+	result.swapchain_img_views.resize(result.swapchain_imgs.size());
+	for (size_t i = 0; i < result.swapchain_img_views.size(); i++) {
+		VkImageViewCreateInfo image_view_create_info = {};
+		image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		image_view_create_info.image = result.swapchain_imgs[i];
+		image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		image_view_create_info.format = result.swapchain_format;
+		image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		image_view_create_info.subresourceRange.baseMipLevel = 0;
+		image_view_create_info.subresourceRange.levelCount = 1;
+		image_view_create_info.subresourceRange.baseArrayLayer = 0;
+		image_view_create_info.subresourceRange.layerCount = 1;
+
+		if (vkCreateImageView(result.log_dev, &image_view_create_info, nullptr, &result.swapchain_img_views[i]) != VK_SUCCESS) {
+			return "Failed to create image view"sv;
+		}
+	}
 
 	vkGetDeviceQueue(result.log_dev, gfx_queue_idx, 0, &result.gfx_queue);
 	vkGetDeviceQueue(result.log_dev, pres_queue_idx, 0, &result.pres_queue);
@@ -337,6 +360,10 @@ err::Result<VulkanResources> VulkanResources::create(Window const& window) {
 
 Result<Unit> VulkanResources::destroy() {
 	using namespace std::literals;
+
+	for (auto img_view : this->swapchain_img_views) {
+		vkDestroyImageView(this->log_dev, img_view, nullptr);
+	}
 
 	vkDestroySwapchainKHR(this->log_dev, this->swapchain, nullptr);
 	vkDestroyDevice(this->log_dev, nullptr);
