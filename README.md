@@ -13,7 +13,7 @@ is a consideration, but nothing has been implemented yet.
 # Platform Support
 Tier 1: Linux (where cae is primarily developed)
 
-Tier 2: macOs (??? depending on if we can get vulkan running there)
+Tier 2: macOs (??? depending on if we can get vulkan running there, or if we do multiple backends)
 
 Tier 3: Windows (untested, probably requires significant changes)
 
