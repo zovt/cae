@@ -21,7 +21,10 @@ struct VulkanResources {
 	VkQueue gfx_queue;
 	VkQueue pres_queue;
 	VkSurfaceKHR surf;
-
+	VkSwapchainKHR swapchain;
+	std::vector<VkImage> swapchain_imgs;
+	VkFormat swapchain_format;
+	VkExtent2D swapchain_extent;
 
 	static err::Result<VulkanResources> create(window::Window const& window);
 
