@@ -17,6 +17,7 @@
 #include "color.hh"
 #include "fonts.hh"
 #include "defer.hh"
+#include "macros.hh"
 
 using namespace config;
 using namespace color;
@@ -33,12 +34,38 @@ static const Config conf(
 	16
 );
 
+DEBUG_ONLY(
+void GLAPIENTRY message_cb(
+	GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam
+) {
+	(void)source;
+	(void)id;
+	(void)userParam;
+	(void)length;
+
+	std::cerr << "GL Message: "
+		<< (type == GL_DEBUG_TYPE_ERROR ? "!! ERROR !! " : " ")
+		<< "severity: " << severity << " message: " << message;
+}
+)
+
 Result<Unit> run() {
 	using namespace std::literals;
 
 	try(auto font_path, get_closest_font_match(conf.fonts));
 
 	Window window(800, 600, "cae");
+
+	DEBUG_ONLY(
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(message_cb, 0);
+	)
 
 	GLuint vbo;
 	glGenBuffers(1, &vbo);

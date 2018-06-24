@@ -21,11 +21,11 @@ cae: build build/cae
 build:
 	mkdir $(build_dirs) build/include
 
-$(resources):
-	./build_scripts/compile_resources.sh $(subst build/include/,,$(subst .hh,,$@))
+$(resources): build/include/%.hh: %
+	./build_scripts/compile_resources.sh $<
 
-$(obj):
-	$(CXX) -c -o $@ $(subst build,src,$(subst .o,.cc,$@)) $(CXXFLAGS)
+$(obj): build/%.o: src/%.cc
+	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 build/cae: $(resources) $(obj)
 	$(CXX) -o $@ $(obj) $(LDFLAGS)
