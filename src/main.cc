@@ -9,20 +9,20 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
+#include "graphics/opengl/index.hh"
+#include "graphics/window.hh"
+#include "graphics/primitives.hh"
 #include "unit.hh"
 #include "config.hh"
 #include "color.hh"
 #include "fonts.hh"
 #include "defer.hh"
-#include "graphics/window.hh"
-#include "graphics/vulkan.hh"
 
 using namespace config;
 using namespace color;
 using namespace fonts;
 using namespace err;
 using namespace defer;
-using namespace vulkan;
 using namespace window;
 
 static const Config conf(
@@ -40,10 +40,13 @@ Result<Unit> run() {
 
 	Window window(800, 600, "cae");
 
-	try(auto vk_res, VulkanResources::create(window));
-	defer([&](){ vk_res.destroy(); }); // TODO: Maybe figure out RAII here?
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, primitives::triangle.size(), primitives::triangle.data(), GL_STATIC_DRAW);
 
 	while (!glfwWindowShouldClose(window.handle)) {
+		glfwSwapBuffers(window.handle);
 		glfwPollEvents();
 	}
 

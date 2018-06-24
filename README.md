@@ -1,7 +1,7 @@
 # cae
 cae is an experimental, mouse-based, integrating programming environment.
 
-The rendering is done via Vulkan currently. The use of multiple graphics backends
+The rendering is done via OpenGL currently. The use of multiple graphics backends
 is a consideration, but nothing has been implemented yet.
 
 # Goals
@@ -13,7 +13,7 @@ is a consideration, but nothing has been implemented yet.
 # Platform Support
 Tier 1: Linux (where cae is primarily developed)
 
-Tier 2: macOs (??? depending on if we can get vulkan running there, or if we do multiple backends)
+Tier 2: macOs
 
 Tier 3: Windows (untested, probably requires significant changes)
 
@@ -22,7 +22,8 @@ Tier 3: Windows (untested, probably requires significant changes)
 - C++17 compiler
 - fontconfig (*nix)
 - glfw3
-- vulkan headers, [glslangValidator](https://github.com/KhronosGroup/glslang)
+- glew
+- glm
 
 # Prior art
 Some text editors that have inspired cae

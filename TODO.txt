@@ -1,3 +1,1 @@
-- Separate out the render library into a self-contained unit so that people don't need
-a vulkan toolchain to compile if they don't want to
 - Runtime configuration
