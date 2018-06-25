@@ -3,6 +3,7 @@
 #include <variant>
 #include <iostream>
 #include <cstring>
+#include <csignal>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -10,14 +11,19 @@
 #include <glm/mat4x4.hpp>
 
 #include "graphics/opengl/index.hh"
+#include "graphics/opengl/drawing.hh"
+#include "graphics/opengl/shaders.hh"
+#include "graphics/opengl/primitives.hh"
 #include "graphics/window.hh"
-#include "graphics/primitives.hh"
 #include "unit.hh"
 #include "config.hh"
 #include "color.hh"
 #include "fonts.hh"
 #include "defer.hh"
 #include "macros.hh"
+#include "resources/shaders/opengl/basic.frag.hh"
+#include "resources/shaders/opengl/basic.vert.hh"
+#include "resources/shaders/opengl/basic_color.vert.hh"
 
 using namespace config;
 using namespace color;
@@ -25,6 +31,10 @@ using namespace fonts;
 using namespace err;
 using namespace defer;
 using namespace window;
+using namespace graphics::primitives;
+using namespace graphics::opengl::drawing;
+using namespace graphics::opengl::shaders;
+using namespace graphics::opengl::primitives;
 
 static const Config conf(
 	{"Iosevka Term"},
@@ -45,13 +55,14 @@ void GLAPIENTRY message_cb(
 	const void* userParam
 ) {
 	(void)source;
-	(void)id;
 	(void)userParam;
 	(void)length;
 
 	std::cerr << "GL Message: "
 		<< (type == GL_DEBUG_TYPE_ERROR ? "!! ERROR !! " : " ")
-		<< "severity: " << severity << " message: " << message;
+		<< "severity: " << severity
+		<< " error_id: " << id
+		<< " message: " << message << std::endl;
 }
 )
 
@@ -67,14 +78,21 @@ Result<Unit> run() {
 	glDebugMessageCallback(message_cb, 0);
 	)
 
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, primitives::triangle.size(), primitives::triangle.data(), GL_STATIC_DRAW);
+	VertShader<XYZVertInputs> vert(basic_vert);
+	VertShader<XYZRGBVertInputs> vert_color(basic_color_vert);
+	FragShader<> frag(basic_frag);
+	Program const basic_shdr(vert, frag);
+	Program const basic_color_shdr(vert_color, frag);
+
+	auto const pixel = make_pixel(basic_shdr);
+	auto const mc_pixel = make_mc_pixel(basic_color_shdr);
 
 	while (!glfwWindowShouldClose(window.handle)) {
-		glfwSwapBuffers(window.handle);
 		glfwPollEvents();
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		mc_pixel.draw();
+		glfwSwapBuffers(window.handle);
 	}
 
 	return unit;

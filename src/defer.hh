@@ -1,5 +1,7 @@
 #pragma once
 
+#include "macros.hh"
+
 namespace defer {
 
 template<typename T>

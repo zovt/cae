@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "opengl/index.hh"
-#include <GLFW/glfw3.h>
 
 namespace window {
 

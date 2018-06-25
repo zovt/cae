@@ -2,13 +2,9 @@ CXXFLAGS := -std=c++17 -g -Wall -Wextra \
 	-Wpedantic ${CXXFLAGS} \
 	-Ibuild/include \
 	-fno-exceptions \
-	$(shell pkg-config --cflags fontconfig) \
-	$(shell pkg-config --cflags glfw3) \
-	$(shell pkg-config --cflags glew)
+	$(shell pkg-config --cflags fontconfig glfw3 glew)
 
-LDFLAGS := ${LDFLAGS} $(shell pkg-config --static --libs fontconfig) \
-	$(shell pkg-config --static --libs glfw3) \
-	$(shell pkg-config --static --libs glew)
+LDFLAGS := ${LDFLAGS} $(shell pkg-config --static --libs fontconfig glew glfw3)
 
 src = $(shell find src/ -name *.cc)
 headers = $(shell find src/ -name *.hh)
@@ -24,7 +20,7 @@ build:
 $(resources): build/include/%.hh: %
 	./build_scripts/compile_resources.sh $<
 
-$(obj): build/%.o: src/%.cc
+$(obj): build/%.o: src/%.cc $(headers)
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 build/cae: $(resources) $(obj)
