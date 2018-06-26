@@ -20,10 +20,10 @@ build:
 $(resources): build/include/%.hh: %
 	./build_scripts/compile_resources.sh $<
 
-$(obj): build/%.o: src/%.cc $(headers)
+$(obj): build/%.o: src/%.cc $(headers) $(resources)
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
-build/cae: $(resources) $(obj)
+build/cae: $(obj)
 	$(CXX) -o $@ $(obj) $(LDFLAGS)
 
 .PHONY: clean

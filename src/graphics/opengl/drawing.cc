@@ -28,11 +28,13 @@ GLResource::GLResource(GLResource&& other) {
 }
 
 GLResource& GLResource::operator=(GLResource&& other) {
-	this->id = other.id;
-	this->destroy = other.destroy;
+	if (this != &other) {
+		this->id = other.id;
+		this->destroy = other.destroy;
 
-	other.id = 0;
-	other.destroy = do_nothing;
+		other.id = 0;
+		other.destroy = do_nothing;
+	}
 
 	return *this;
 }

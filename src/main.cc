@@ -85,8 +85,7 @@ Result<Unit> run() {
 
 	auto mc_pixel_tup = DrawInfo::make(mc_pixel_data, pixel_ebo, mc_pixel_attrib_setup);
 	auto const mc_pixel_vbo = std::move(std::get<0>(mc_pixel_tup));
-	auto const
-	mc_pixel = std::move(std::get<1>(mc_pixel_tup));
+	auto const mc_pixel = std::move(std::get<1>(mc_pixel_tup));
 
 	VertShader vert(basic_vert);
 	VertShader vert_color(basic_color_vert);

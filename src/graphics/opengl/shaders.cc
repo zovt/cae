@@ -31,8 +31,10 @@ ShaderCommon::ShaderCommon(ShaderCommon&& other) {
 }
 
 ShaderCommon& ShaderCommon::operator=(ShaderCommon&& other) {
-	this->shader = other.shader;
-	other.shader = 0;
+	if (this != &other) {
+		this->shader = other.shader;
+		other.shader = 0;
+	}
 
 	return *this;
 }
