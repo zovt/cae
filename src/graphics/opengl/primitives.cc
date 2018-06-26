@@ -14,7 +14,7 @@ void graphics::opengl::primitives::pixel_attrib_setup() {
 	glEnableVertexAttribArray(attr_pos);
 	glVertexAttribPointer(
 		attr_pos,
-		3,
+		2,
 		GL_FLOAT,
 		GL_FALSE,
 		sizeof(XYZVert),
@@ -27,7 +27,7 @@ void graphics::opengl::primitives::mc_pixel_attrib_setup() {
 	glEnableVertexAttribArray(attr_color);
 	glVertexAttribPointer(
 		attr_pos,
-		3,
+		2,
 		GL_FLOAT,
 		GL_FALSE,
 		sizeof(XYZRGBVert),
@@ -39,7 +39,7 @@ void graphics::opengl::primitives::mc_pixel_attrib_setup() {
 		GL_FLOAT,
 		GL_FALSE,
 		sizeof(XYZRGBVert),
-		(const void*)(3 * sizeof(float))
+		(const void*)(2 * sizeof(float))
 	);
 }
 
