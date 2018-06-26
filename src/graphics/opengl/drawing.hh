@@ -74,6 +74,15 @@ struct DrawInfo {
 
 	void draw(shaders::Program const& shdr) const;
 
+	template <typename Uniforms>
+	void draw(shaders::Program const& shdr, Uniforms const& uniforms) const {
+		this->vao.use([&]() {
+			shdr.activate();
+			uniforms.activate();
+			glDrawElements(GL_TRIANGLES, this->n_indices, GL_UNSIGNED_INT, 0);
+		});
+	}
+
 	template <typename Data, typename AttribSetupCallable>
 	static std::tuple<VBO, EBO, DrawInfo> make(
 		std::vector<Data> const& data,

@@ -13,15 +13,16 @@ ShaderCommon::ShaderCommon(std::string const& source, GLenum shader_type) {
 	glCompileShader(this->shader);
 	GLint status;
 	glGetShaderiv(this->shader, GL_COMPILE_STATUS, &status);
-	if (status != GL_TRUE) {
-		GLsizei log_len;
-		glGetShaderiv(this->shader, GL_INFO_LOG_LENGTH, &log_len);
-		std::cerr << log_len << std::endl;
+	GLsizei log_len;
+	glGetShaderiv(this->shader, GL_INFO_LOG_LENGTH, &log_len);
+
+	if (status != GL_TRUE || log_len != 0) {
 		std::string output{};
 		output.reserve(log_len + 1);
-		glGetShaderInfoLog(this->shader, log_len, nullptr, output.data());
+		auto buf = output.data();
+		glGetShaderInfoLog(this->shader, log_len, 0, buf);
 		std::cerr << "SHADER ERROR" << std::endl;
-		std::cerr << output << std::endl;
+		std::cerr << buf << std::endl;
 	}
 }
 

@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 
 layout(location = 0)
 in vec2 pos;
@@ -10,10 +10,10 @@ layout(location = 2)
 in vec2 uv;
 
 layout(location = 0)
-uniform mat4 world;
+uniform mat4 proj;
 
 layout(location = 1)
-uniform mat4 proj;
+uniform mat4 world;
 
 layout(location = 2)
 uniform mat4 transform;

@@ -9,11 +9,13 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "graphics/opengl/index.hh"
 #include "graphics/opengl/drawing.hh"
 #include "graphics/opengl/shaders.hh"
 #include "graphics/opengl/primitives.hh"
+#include "graphics/opengl/uniforms.hh"
 #include "graphics/window.hh"
 #include "unit.hh"
 #include "config.hh"
@@ -35,6 +37,7 @@ using namespace graphics::primitives;
 using namespace graphics::opengl::drawing;
 using namespace graphics::opengl::shaders;
 using namespace graphics::opengl::primitives;
+using namespace graphics::opengl::uniforms;
 
 static const Config conf(
 	{"Iosevka Term"},
@@ -93,12 +96,27 @@ Result<Unit> run() {
 	Program const basic_shdr(vert, frag);
 	Program const basic_color_shdr(vert_color, frag);
 
+
+	GlobalDrawingUniforms globals(window.width, window.height);
+	std::vector<UniformGroup<GlobalDrawingUniforms, TransformUniform>> unis;
+	auto transform = glm::scale(glm::mat4(1.0), {10.0, 10.0, 1.0});
+	for (int i = 0; i < (window.width / 10); i++) {
+		transform = glm::translate(glm::scale(glm::mat4(1.0), {10.0, 10.0, 1.0}), {i, 0.0, 0.0});
+		for (int j = 0; j < (window.height / 10); j++) {
+			unis.push_back(UniformGroup{globals, TransformUniform{transform}});
+			transform = glm::translate(transform, {0.0, 1.0, 0.0});
+		}
+	}
+
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwPollEvents();
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		pixel.draw(basic_shdr);
-		mc_pixel.draw(basic_color_shdr);
+
+		for (auto const& uni : unis) {
+			mc_pixel.draw(basic_color_shdr, uni);
+		}
+
 		glfwSwapBuffers(window.handle);
 	}
 
