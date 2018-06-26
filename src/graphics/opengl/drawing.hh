@@ -1,97 +1,116 @@
 #pragma once
 
 #include <vector>
+#include <tuple>
 
 #include "index.hh"
 #include "shaders.hh"
-#include "../../defer.hh"
 
 namespace graphics { namespace opengl { namespace drawing {
 
-template<typename DataType>
-struct PrimitiveData {
-	using vertex_data = DataType;
+struct GLResource {
+	typedef void (*create_func)(GLsizei, GLuint*);
+	typedef void (*destroy_func)(GLsizei, const GLuint*);
 
-	std::vector<DataType> const& vertices;
-	std::vector<GLuint> const& indices;
+	GLuint id;
+	destroy_func destroy;
 
-	size_t get_n_indices() const {
-		return this->indices.size();
-	}
+	GLResource() = delete;
+	GLResource(create_func create, destroy_func destroy);
+	GLResource(GLResource&& other);
+	GLResource& operator=(GLResource&& other);
+	~GLResource();
 
-	GLuint get_indices_sz() const {
-		return this->indices.size() * sizeof(GLuint);
-	}
-
-	GLuint const* get_indices_ptr() const {
-		return this->indices.data();
-	}
-
-	GLuint get_vertices_sz() const {
-		return this->vertices.size() * sizeof(DataType);
-	}
-
-	DataType const* get_vertices_ptr() const {
-		return this->vertices.data();
-	}
+	GLResource(GLResource const& other) = delete;
+	GLResource& operator=(GLResource const& other) = delete;
 };
 
-struct GLVertexData  {
-	GLuint vao;
-	GLuint vbo;
-	GLuint ebo;
+struct VAO {
+	GLResource vao;
 
-	size_t n_indices;
+	VAO();
 
 	void activate() const;
 	void deactivate() const;
-	void draw() const;
 
-	template <
-		typename Data,
-		typename VertIn,
-		typename FragOut
-	>
-	GLVertexData(
-		Data const& data,
-		shaders::Program<VertIn, FragOut> const& shdr
-	) : n_indices(data.get_n_indices()) {
-		static_assert(std::is_same<
-			typename Data::vertex_data,
-			typename VertIn::vertex_data
-		>::value);
-
-		glGenVertexArrays(1, &this->vao);
-		glGenBuffers(1, &this->ebo);
-		glGenBuffers(1, &this->vbo);
-
+	template<typename Callable>
+	void use(Callable c) const {
 		this->activate();
-		defer([&]() { this->deactivate(); });
+		c();
+		this->deactivate();
+	}
+};
 
-		glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
+struct VBO {
+	GLResource vbo;
+
+	void activate() const;
+	void deactivate() const;
+
+	template <typename Data>
+	VBO(std::vector<Data> const& data) : vbo(glGenBuffers, glDeleteBuffers) {
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo.id);
 		glBufferData(
 			GL_ARRAY_BUFFER,
-			data.get_vertices_sz(),
-			data.get_vertices_ptr(),
+			sizeof(Data) * data.size(),
+			data.data(),
 			GL_STATIC_DRAW
 		);
-		glBufferData(
-			GL_ELEMENT_ARRAY_BUFFER,
-			data.get_indices_sz(),
-			data.get_indices_ptr(),
-			GL_STATIC_DRAW
-		);
+	}
+};
 
-		shdr.activate_vert_attr_arrays();
-		shdr.activate();
+struct EBO {
+	GLResource ebo;
+	GLsizei n_indices;
+
+	void activate() const;
+
+	EBO(std::vector<GLuint> const& indices);
+};
+
+struct DrawInfo {
+	VAO vao;
+	GLsizei n_indices;
+
+	void draw(shaders::Program const& shdr) const;
+
+	template <typename Data, typename AttribSetupCallable>
+	static std::tuple<VBO, EBO, DrawInfo> make(
+		std::vector<Data> const& data,
+		std::vector<GLuint> const& indices,
+		AttribSetupCallable setup_attribs
+	) {
+		VAO vao;
+		vao.activate();
+
+		VBO vbo(data);
+		EBO ebo(indices);
+
+		setup_attribs();
+		vao.deactivate();
+
+		DrawInfo res { std::move(vao), ebo.n_indices };
+		return std::make_tuple(std::move(vbo), std::move(ebo), std::move(res));
 	}
 
-	GLVertexData(GLVertexData&& other);
-	GLVertexData(GLVertexData const& other) = delete;
-	GLVertexData& operator=(GLVertexData const& other) = delete;
-	GLVertexData& operator=(GLVertexData&& other);
-	~GLVertexData();
+	template <typename Data, typename AttribSetupCallable>
+	static std::tuple<VBO, DrawInfo> make(
+		std::vector<Data> const& data,
+		EBO const& ebo,
+		AttribSetupCallable setup_attribs
+	) {
+		VAO vao;
+		vao.activate();
+
+		VBO vbo(data);
+		ebo.activate();
+
+		setup_attribs();
+		vao.deactivate();
+
+		DrawInfo res { std::move(vao), ebo.n_indices };
+		return std::make_tuple(std::move(vbo), std::move(res));
+	}
 };
 
 } } }

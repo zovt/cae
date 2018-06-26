@@ -78,20 +78,28 @@ Result<Unit> run() {
 	glDebugMessageCallback(message_cb, 0);
 	)
 
-	VertShader<XYZVertInputs> vert(basic_vert);
-	VertShader<XYZRGBVertInputs> vert_color(basic_color_vert);
-	FragShader<> frag(basic_frag);
+	auto pixel_tup = DrawInfo::make(pixel_data, pixel_indices, pixel_attrib_setup);
+	auto const pixel_vbo = std::move(std::get<0>(pixel_tup));
+	auto const pixel_ebo = std::move(std::get<1>(pixel_tup));
+	auto const pixel = std::move(std::get<2>(pixel_tup));
+
+	auto mc_pixel_tup = DrawInfo::make(mc_pixel_data, pixel_ebo, mc_pixel_attrib_setup);
+	auto const mc_pixel_vbo = std::move(std::get<0>(mc_pixel_tup));
+	auto const
+	mc_pixel = std::move(std::get<1>(mc_pixel_tup));
+
+	VertShader vert(basic_vert);
+	VertShader vert_color(basic_color_vert);
+	FragShader frag(basic_frag);
 	Program const basic_shdr(vert, frag);
 	Program const basic_color_shdr(vert_color, frag);
-
-	auto const pixel = make_pixel(basic_shdr);
-	auto const mc_pixel = make_mc_pixel(basic_color_shdr);
 
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwPollEvents();
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		mc_pixel.draw();
+		pixel.draw(basic_shdr);
+		mc_pixel.draw(basic_color_shdr);
 		glfwSwapBuffers(window.handle);
 	}
 

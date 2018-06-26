@@ -2,50 +2,69 @@
 
 #include <iostream>
 
-#include "../../defer.hh"
-
 using namespace graphics::opengl::drawing;
+using namespace graphics::opengl::shaders;
 
-GLVertexData::GLVertexData(GLVertexData&& other) {
-	this->vao = other.vao;
-	this->vbo = other.vbo;
-	this->ebo = other.ebo;
-	this->n_indices = other.n_indices;
-
-	other.ebo = 0;
-	other.vao = 0;
-	other.ebo = 0;
+void do_nothing(GLsizei size, const GLuint* ptr) {
+	(void)size;
+	(void)ptr;
 }
 
-GLVertexData& GLVertexData::operator=(GLVertexData&& other) {
-	this->vao = other.vao;
-	this->vbo = other.vbo;
-	this->ebo = other.ebo;
-	this->n_indices = other.n_indices;
+GLResource::GLResource(GLResource::create_func create, GLResource::destroy_func destroy) {
+	this->destroy = destroy;
+	(*create)(1, &this->id);
+}
 
-	other.ebo = 0;
-	other.vao = 0;
-	other.ebo = 0;
+GLResource::~GLResource() {
+	(*this->destroy)(1, &this->id);
+}
+
+GLResource::GLResource(GLResource&& other) {
+	this->id = other.id;
+	this->destroy = other.destroy;
+
+	other.id = 0;
+	other.destroy = do_nothing;
+}
+
+GLResource& GLResource::operator=(GLResource&& other) {
+	this->id = other.id;
+	this->destroy = other.destroy;
+
+	other.id = 0;
+	other.destroy = do_nothing;
 
 	return *this;
 }
 
-GLVertexData::~GLVertexData() {
-	glDeleteVertexArrays(1, &this->vao);
-	glDeleteBuffers(1, &this->ebo);
-	glDeleteBuffers(1, &this->vbo);
+VAO::VAO() : vao(glGenVertexArrays, glDeleteVertexArrays) {}
+
+void VAO::activate() const {
+	glBindVertexArray(this->vao.id);
 }
 
-void GLVertexData::activate() const {
-	glBindVertexArray(this->vao);
-}
-
-void GLVertexData::deactivate() const {
+void VAO::deactivate() const {
 	glBindVertexArray(0);
 }
 
-void GLVertexData::draw() const {
+EBO::EBO(std::vector<GLuint> const& indices) : ebo(glGenBuffers, glDeleteBuffers) {
+	this->n_indices = indices.size();
 	this->activate();
-	defer([&]() { this->deactivate(); });
-	glDrawElements(GL_TRIANGLES, this->n_indices, GL_UNSIGNED_INT, 0);
+	glBufferData(
+		GL_ELEMENT_ARRAY_BUFFER,
+		sizeof(GLuint) * this->n_indices,
+		indices.data(),
+		GL_STATIC_DRAW
+	);
+}
+
+void EBO::activate() const {
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo.id);
+}
+
+void DrawInfo::draw(Program const& shdr) const {
+	this->vao.use([&]() {
+		shdr.activate();
+		glDrawElements(GL_TRIANGLES, this->n_indices, GL_UNSIGNED_INT, 0);
+	});
 }

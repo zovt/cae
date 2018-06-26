@@ -6,22 +6,40 @@ using namespace graphics::opengl::drawing;
 using namespace graphics::opengl::shaders;
 using namespace graphics::primitives;
 
-GLVertexData graphics::opengl::primitives::make_pixel(Program<XYZVertInputs> const& shdr) {
-	PrimitiveData<XYZVert> const pixel_data = {
-		pixel_verts,
-		pixel_indices
-	};
-	GLVertexData pixel(pixel_data, shdr);
+GLint const attr_pos = 0;
+GLint const attr_color = 1;
+GLint const attr_uv = 2;
 
-	return pixel;
+void graphics::opengl::primitives::pixel_attrib_setup() {
+	glEnableVertexAttribArray(attr_pos);
+	glVertexAttribPointer(
+		attr_pos,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(XYZVert),
+		0
+	);
 }
 
-GLVertexData graphics::opengl::primitives::make_mc_pixel(Program<XYZRGBVertInputs> const& shdr) {
-	PrimitiveData<XYZRGBVert> const mc_pixel_data = {
-		multicolor_pixel_verts,
-		pixel_indices
-	};
-	GLVertexData mc_pixel(mc_pixel_data, shdr);
-
-	return mc_pixel;
+void graphics::opengl::primitives::mc_pixel_attrib_setup() {
+	glEnableVertexAttribArray(attr_pos);
+	glEnableVertexAttribArray(attr_color);
+	glVertexAttribPointer(
+		attr_pos,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(XYZRGBVert),
+		0
+	);
+	glVertexAttribPointer(
+		attr_color,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(XYZRGBVert),
+		(const void*)(3 * sizeof(float))
+	);
 }
+
