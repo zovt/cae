@@ -13,7 +13,7 @@ for path in $@; do
 	echo "#include <string>" >> $output_header
 	xxd -i $path | sed \
 		-e "s,$underscore_path,$underscore_file,g;"\
-		-e "s,unsigned char,std::string const,g;"\
+		-e "s,unsigned char,std::vector<unsigned char> const,g;"\
 		-e "s,\[\],,g;"\
 		-e "/unsigned int/d;" >> $output_header
 done

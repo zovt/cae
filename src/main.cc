@@ -12,11 +12,15 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "graphics/opengl/index.hh"
 #include "graphics/opengl/drawing.hh"
 #include "graphics/opengl/shaders.hh"
 #include "graphics/opengl/primitives.hh"
 #include "graphics/opengl/uniforms.hh"
+#include "graphics/opengl/textures.hh"
 #include "graphics/window.hh"
 #include "unit.hh"
 #include "config.hh"
@@ -24,9 +28,9 @@
 #include "fonts.hh"
 #include "defer.hh"
 #include "macros.hh"
-#include "resources/shaders/opengl/basic.frag.hh"
-#include "resources/shaders/opengl/basic.vert.hh"
-#include "resources/shaders/opengl/basic_color.vert.hh"
+#include "resources/shaders/opengl/text.vert.hh"
+#include "resources/shaders/opengl/text.frag.hh"
+#include "resources/textures/test.png.hh"
 
 using namespace config;
 using namespace color;
@@ -39,6 +43,7 @@ using namespace graphics::opengl::drawing;
 using namespace graphics::opengl::shaders;
 using namespace graphics::opengl::primitives;
 using namespace graphics::opengl::uniforms;
+using namespace graphics::opengl::textures;
 
 static const Config conf(
 	{"Iosevka Term"},
@@ -75,6 +80,8 @@ bool window_size_changed = false;
 int changed_width;
 int changed_height;
 void window_change_cb(GLFWwindow* window, int width, int height) {
+	(void)window;
+
 	window_size_changed = true;
 	changed_width = width;
 	changed_height = height;
@@ -92,26 +99,46 @@ Result<Unit> run() {
 	glDebugMessageCallback(message_cb, 0);
 	)
 
-	auto pixel_tup = DrawInfo::make(pixel_data, pixel_indices, pixel_attrib_setup);
-	auto const pixel_vbo = std::move(std::get<0>(pixel_tup));
-	auto const pixel_ebo = std::move(std::get<1>(pixel_tup));
-	auto const pixel = std::move(std::get<2>(pixel_tup));
+	auto tex_pixel_tup = DrawInfo::make(tex_pixel_data, pixel_indices);
+	auto tex_pixel = std::get<2>(std::move(tex_pixel_tup));
 
-	auto mc_pixel_tup = DrawInfo::make(mc_pixel_data, pixel_ebo, mc_pixel_attrib_setup);
-	auto const mc_pixel_vbo = std::move(std::get<0>(mc_pixel_tup));
-	auto const mc_pixel = std::move(std::get<1>(mc_pixel_tup));
-
-
-	VertShader vert(basic_vert);
-	VertShader vert_color(basic_color_vert);
-	FragShader frag(basic_frag);
-	Program const basic_shdr(vert, frag);
-	Program const basic_color_shdr(vert_color, frag);
-
+	VertShader text_vert_shdr(std::string{text_vert.begin(), text_vert.end()});
+	FragShader text_frag_shdr(std::string{text_frag.begin(), text_frag.end()});
+	Program const text_shdr(text_vert_shdr, text_frag_shdr);
 
 	GlobalDrawingUniforms globals(window.width, window.height);
 
+	Texture blank{blank_tex_data, 1, 1, GL_RGB, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR};
+
+	int test_png_width;
+	int test_png_height;
+	int test_png_n;
+	auto test_png_data = stbi_load_from_memory(
+		test_png.data(),
+		test_png.size(),
+		&test_png_width,
+		&test_png_height,
+		&test_png_n,
+		3
+	);
+	std::vector<unsigned char> test_png_owned_data((test_png_width * test_png_height) * 3);
+	test_png_owned_data.assign(test_png_data, test_png_data + test_png_owned_data.capacity());
+	stbi_image_free(test_png_data);
+	Texture test{
+		test_png_owned_data,
+		test_png_width,
+		test_png_height,
+		GL_RGB,
+		GL_UNSIGNED_BYTE,
+		GL_CLAMP_TO_EDGE,
+		GL_LINEAR_MIPMAP_LINEAR,
+		GL_LINEAR
+	};
+
 	glfwSetWindowSizeCallback(window.handle, window_change_cb);
+
+	auto transform = glm::scale(glm::translate(glm::mat4(1.f), {400.f, 300.f, 0.f}), {100.f, 100.f, 1.f});
+
 	while (!glfwWindowShouldClose(window.handle)) {
 		if (window_size_changed) {
 			window_size_changed = false;
@@ -122,7 +149,7 @@ Result<Unit> run() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		mc_pixel.draw(basic_color_shdr);
+		tex_pixel.draw(text_shdr, UniformGroup{std::cref(globals), TransformUniform{transform}, std::cref(test)});
 
 		glfwSwapBuffers(window.handle);
 	}

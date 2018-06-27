@@ -1,7 +1,7 @@
 #version 430 core
 
 layout(location = 0)
-in vec2 pos;
+in vec3 pos;
 
 layout(location = 1)
 in vec3 color;
@@ -22,7 +22,7 @@ out vec3 f_color;
 out vec2 f_uv;
 
 void main() {
-	gl_Position = proj * world * transform * vec4(pos, 0.0, 1.0);
+	gl_Position = proj * world * transform * vec4(pos, 1.0);
 	f_uv = uv;
 	f_color = color;
 }

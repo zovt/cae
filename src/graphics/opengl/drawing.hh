@@ -5,6 +5,7 @@
 
 #include "index.hh"
 #include "shaders.hh"
+#include "primitives.hh"
 
 namespace graphics { namespace opengl { namespace drawing {
 
@@ -72,6 +73,7 @@ struct DrawInfo {
 	VAO vao;
 	GLsizei n_indices;
 
+	void draw() const;
 	void draw(shaders::Program const& shdr) const;
 
 	template <typename Uniforms>
@@ -83,11 +85,10 @@ struct DrawInfo {
 		});
 	}
 
-	template <typename Data, typename AttribSetupCallable>
+	template <typename Data>
 	static std::tuple<VBO, EBO, DrawInfo> make(
 		std::vector<Data> const& data,
-		std::vector<GLuint> const& indices,
-		AttribSetupCallable setup_attribs
+		std::vector<GLuint> const& indices
 	) {
 		VAO vao;
 		vao.activate();
@@ -95,18 +96,17 @@ struct DrawInfo {
 		VBO vbo(data);
 		EBO ebo(indices);
 
-		setup_attribs();
+		primitives::attrib_setup<Data>();
 		vao.deactivate();
 
 		DrawInfo res { std::move(vao), ebo.n_indices };
 		return std::make_tuple(std::move(vbo), std::move(ebo), std::move(res));
 	}
 
-	template <typename Data, typename AttribSetupCallable>
+	template <typename Data>
 	static std::tuple<VBO, DrawInfo> make(
 		std::vector<Data> const& data,
-		EBO const& ebo,
-		AttribSetupCallable setup_attribs
+		EBO const& ebo
 	) {
 		VAO vao;
 		vao.activate();
@@ -114,7 +114,7 @@ struct DrawInfo {
 		VBO vbo(data);
 		ebo.activate();
 
-		setup_attribs();
+		primitives::attrib_setup<Data>();
 		vao.deactivate();
 
 		DrawInfo res { std::move(vao), ebo.n_indices };

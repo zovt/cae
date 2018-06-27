@@ -64,6 +64,10 @@ void EBO::activate() const {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo.id);
 }
 
+void DrawInfo::draw() const {
+	glDrawElements(GL_TRIANGLES, this->n_indices, GL_UNSIGNED_INT, 0);
+}
+
 void DrawInfo::draw(Program const& shdr) const {
 	this->vao.use([&]() {
 		shdr.activate();

@@ -43,7 +43,7 @@ struct UniformGroup<std::reference_wrapper<HUniform>, RUniforms...> {
 	: uni_ref(uni_ref), rest(rest...) {}
 
 	void activate() const {
-		this->uni.get().activate();
+		this->uni_ref.get().activate();
 		this->rest.activate();
 	}
 };
@@ -58,5 +58,17 @@ struct UniformGroup<HUniform> {
 		this->uni.activate();
 	}
 };
+
+template <typename HUniform>
+struct UniformGroup<std::reference_wrapper<HUniform>> {
+	std::reference_wrapper<HUniform> uni_ref;
+
+	UniformGroup(std::reference_wrapper<HUniform> uni_ref) : uni_ref(uni_ref) {}
+
+	void activate() const {
+		this->uni_ref.get().activate();
+	}
+};
+
 
 } } }
