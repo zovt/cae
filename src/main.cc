@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstring>
 #include <csignal>
+#include <functional>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -69,6 +70,16 @@ void GLAPIENTRY message_cb(
 }
 )
 
+// Dirty hack to deal with c-style callback
+bool window_size_changed = false;
+int changed_width;
+int changed_height;
+void window_change_cb(GLFWwindow* window, int width, int height) {
+	window_size_changed = true;
+	changed_width = width;
+	changed_height = height;
+}
+
 Result<Unit> run() {
 	using namespace std::literals;
 
@@ -90,6 +101,7 @@ Result<Unit> run() {
 	auto const mc_pixel_vbo = std::move(std::get<0>(mc_pixel_tup));
 	auto const mc_pixel = std::move(std::get<1>(mc_pixel_tup));
 
+
 	VertShader vert(basic_vert);
 	VertShader vert_color(basic_color_vert);
 	FragShader frag(basic_frag);
@@ -98,24 +110,19 @@ Result<Unit> run() {
 
 
 	GlobalDrawingUniforms globals(window.width, window.height);
-	std::vector<UniformGroup<GlobalDrawingUniforms, TransformUniform>> unis;
-	auto transform = glm::scale(glm::mat4(1.0), {10.0, 10.0, 1.0});
-	for (int i = 0; i < (window.width / 10); i++) {
-		transform = glm::translate(glm::scale(glm::mat4(1.0), {10.0, 10.0, 1.0}), {i, 0.0, 0.0});
-		for (int j = 0; j < (window.height / 10); j++) {
-			unis.push_back(UniformGroup{globals, TransformUniform{transform}});
-			transform = glm::translate(transform, {0.0, 1.0, 0.0});
-		}
-	}
 
+	glfwSetWindowSizeCallback(window.handle, window_change_cb);
 	while (!glfwWindowShouldClose(window.handle)) {
+		if (window_size_changed) {
+			window_size_changed = false;
+			globals.regen_proj(changed_width, changed_height);
+		}
+
 		glfwPollEvents();
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		for (auto const& uni : unis) {
-			mc_pixel.draw(basic_color_shdr, uni);
-		}
+		mc_pixel.draw(basic_color_shdr);
 
 		glfwSwapBuffers(window.handle);
 	}

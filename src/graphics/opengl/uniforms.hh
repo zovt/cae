@@ -12,7 +12,7 @@ struct GlobalDrawingUniforms {
 	GlobalDrawingUniforms(float window_w, float window_h);
 
 	void activate() const;
-	void regen_proj(int window_w, int window_h);
+	void regen_proj(float window_w, float window_h);
 };
 
 struct TransformUniform {
@@ -30,6 +30,20 @@ struct UniformGroup {
 
 	void activate() const {
 		this->uni.activate();
+		this->rest.activate();
+	}
+};
+
+template <typename HUniform, typename... RUniforms>
+struct UniformGroup<std::reference_wrapper<HUniform>, RUniforms...> {
+	std::reference_wrapper<HUniform> uni_ref;
+	UniformGroup<RUniforms...> rest;
+
+	UniformGroup(std::reference_wrapper<HUniform> uni_ref, RUniforms... rest)
+	: uni_ref(uni_ref), rest(rest...) {}
+
+	void activate() const {
+		this->uni.get().activate();
 		this->rest.activate();
 	}
 };
