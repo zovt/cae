@@ -85,6 +85,7 @@ void window_change_cb(GLFWwindow* window, int width, int height) {
 	window_size_changed = true;
 	changed_width = width;
 	changed_height = height;
+	glViewport(0, 0, width, height);
 }
 
 Result<Unit> run() {
