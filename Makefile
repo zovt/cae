@@ -5,7 +5,7 @@ CXXFLAGS := -std=c++17 -g -Wall -Wextra \
 	-fno-exceptions \
 	$(shell pkg-config --cflags fontconfig glfw3 glew)
 
-LDFLAGS := ${LDFLAGS} $(shell pkg-config --static --libs fontconfig glew glfw3)
+LDFLAGS := ${LDFLAGS} $(shell pkg-config --static --libs fontconfig glew glfw3) -lstdc++fs
 
 src = $(shell find src/ -name *.cc)
 headers = $(shell find src/ -name *.hh)
