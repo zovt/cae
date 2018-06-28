@@ -119,6 +119,62 @@ void mouse_scroll_cb(GLFWwindow* window, double x_off_p, double y_off_p) {
 	y_off = sgn(y_off_p) * g_line_height * 4;
 }
 
+bool ctrl_down = false;
+void key_cb(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	(void)window;
+	(void)key;
+	(void)scancode;
+
+	if (mods == GLFW_MOD_CONTROL && action == GLFW_PRESS) {
+		ctrl_down = true;
+	}
+
+	if (mods == GLFW_MOD_CONTROL && action == GLFW_RELEASE) {
+		ctrl_down = false;
+	}
+}
+
+bool left_mouse_down = false;
+void mouse_button_cb(GLFWwindow* window, int button, int action, int mods) {
+	(void)window;
+
+	if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL) {
+		ctrl_down = true;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
+		left_mouse_down = true;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE) {
+		left_mouse_down = false;
+	}
+
+	if (action == GLFW_RELEASE && mods == GLFW_MOD_CONTROL) {
+		ctrl_down = false;
+	}
+}
+
+bool screen_dragged = false;
+double cursor_x = 0;
+double cursor_y = 0;
+double drag_delta_x = 0;
+double drag_delta_y = 0;
+void cursor_pos_cb(GLFWwindow* window, double xpos, double ypos) {
+	(void)window;
+
+	if (ctrl_down && left_mouse_down) {
+		screen_dragged = true;
+		drag_delta_x = xpos - cursor_x;
+		drag_delta_y = ypos - cursor_y;
+	} else {
+		screen_dragged = false;
+	}
+
+	cursor_x = xpos;
+	cursor_y = ypos;
+}
+
 void draw_text(
 	std::string const& text,
 	int space_width,
@@ -317,6 +373,9 @@ Result<Unit> run(int argc, char* argv[]) {
 	g_tab_width = char_map_data.md.space_width * conf.tab_size;
 	g_line_height = char_map_data.md.line_height;
 	glfwSetScrollCallback(window.handle, mouse_scroll_cb);
+	glfwSetKeyCallback(window.handle, key_cb);
+	glfwSetCursorPosCallback(window.handle, cursor_pos_cb);
+	glfwSetMouseButtonCallback(window.handle, mouse_button_cb);
 
 	text_shdr.activate();
 	while (!glfwWindowShouldClose(window.handle)) {
@@ -330,6 +389,13 @@ Result<Unit> run(int argc, char* argv[]) {
 		if (mouse_scrolled) {
 			mouse_scrolled = false;
 			globals.world = glm::translate(globals.world, {x_off, y_off, 0.f});
+		}
+
+		if (screen_dragged) {
+			globals.world = glm::translate(globals.world, {drag_delta_x, drag_delta_y, 0.f});
+			drag_delta_x = 0;
+			drag_delta_y = 0;
+			screen_dragged = false;
 		}
 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
