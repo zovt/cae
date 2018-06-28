@@ -19,11 +19,18 @@ Tier 3: Windows (untested, probably requires significant changes)
 
 # Building
 ## Requirements
-- C++17 compiler
+- C++17 compiler (with std::filesystem support)
 - fontconfig (*nix)
 - glfw3
 - glew
 - glm
+
+## Making
+```
+git submodules init
+# set your CXXFLAGS if you'd like. -DCAE_DEBUG enables debug output
+make
+```
 
 # Prior art
 Some text editors that have inspired cae
