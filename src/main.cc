@@ -82,7 +82,9 @@ void GLAPIENTRY message_cb(
 }
 )
 
-// Dirty hack to deal with c-style callback
+// FIXME: Dirty hacks to deal with c-style callbacks
+// Probably best to create a global state struct that updates everything once
+// per frame
 bool window_size_changed = false;
 int changed_width;
 int changed_height;
@@ -93,6 +95,28 @@ void window_change_cb(GLFWwindow* window, int width, int height) {
 	changed_width = width;
 	changed_height = height;
 	glViewport(0, 0, width, height);
+}
+
+template <typename T>
+int8_t sgn(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+
+bool mouse_scrolled = false;
+double x_off;
+double y_off;
+int g_tab_width = 0;
+int g_line_height = 0;
+void mouse_scroll_cb(GLFWwindow* window, double x_off_p, double y_off_p) {
+	(void)window;
+
+	DEBUG_ONLY(
+	std::cerr << "Mouse scrolled" << std::endl;
+	);
+
+	mouse_scrolled = true;
+	x_off = sgn(x_off_p) * g_tab_width;
+	y_off = sgn(y_off_p) * g_line_height * 4;
 }
 
 void draw_text(
@@ -192,6 +216,7 @@ Result<Unit> run(int argc, char* argv[]) {
 	auto md_path = font_data_folder / "meta.dat";
 
 	CharMapData char_map_data;
+	// FIXME: filesystem caching is broken
 	if (true || !(
 		std::filesystem::exists(font_data_folder)
 		&& std::filesystem::exists(tex_path)
@@ -289,19 +314,29 @@ Result<Unit> run(int argc, char* argv[]) {
 
 	glfwSetWindowSizeCallback(window.handle, window_change_cb);
 
+	g_tab_width = char_map_data.md.space_width * conf.tab_size;
+	g_line_height = char_map_data.md.line_height;
+	glfwSetScrollCallback(window.handle, mouse_scroll_cb);
+
 	text_shdr.activate();
 	while (!glfwWindowShouldClose(window.handle)) {
+		glfwPollEvents();
+
 		if (window_size_changed) {
 			window_size_changed = false;
 			globals.regen_proj(changed_width, changed_height);
 		}
 
-		glfwPollEvents();
+		if (mouse_scrolled) {
+			mouse_scrolled = false;
+			globals.world = glm::translate(globals.world, {x_off, y_off, 0.f});
+		}
+
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		always.activate(text_shdr.program);
-		draw_text(file_contents, char_map_data.md.space_width, conf.tab_size, conf.font_size, char_map_data.char_to_metrics, text_shdr, tex_pixel);
+		draw_text(file_contents, char_map_data.md.space_width, conf.tab_size, char_map_data.md.line_height, char_map_data.char_to_metrics, text_shdr, tex_pixel);
 
 		glfwSwapBuffers(window.handle);
 	}

@@ -27,7 +27,7 @@ Tier 3: Windows (untested, probably requires significant changes)
 
 ## Making
 ```
-git submodules init
+git submodule init
 # set your CXXFLAGS if you'd like. -DCAE_DEBUG enables debug output
 make
 ```
