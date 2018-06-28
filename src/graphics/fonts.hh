@@ -8,8 +8,10 @@
 namespace graphics { namespace fonts {
 
 struct UVLocation {
-	float u;
-	float v;
+	float u_min;
+	float v_min;
+	float u_max;
+	float v_max;
 };
 
 struct Metrics {
@@ -29,6 +31,7 @@ struct CharMapData {
 		int image_width;
 		int image_height;
 		int space_width;
+		int line_height;
 	} md;
 	std::vector<PixelData> pixel_data;
 	std::vector<UVLocation> char_to_uv_locations;

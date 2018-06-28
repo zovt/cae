@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <functional>
 #include <filesystem>
+#include <unistd.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -15,10 +16,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#define STBI_ONLY_BMP
-#define STB_IMAGE_IMPLEMENTATION
+
 #include <stb_image.h>
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
 #include "graphics/opengl/index.hh"
@@ -96,10 +95,84 @@ void window_change_cb(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-Result<Unit> run() {
-	using namespace std::literals;
+void draw_text(
+	std::string const& text,
+	int space_width,
+	int tab_size,
+	int line_height,
+	std::vector<Metrics> const& char_to_metrics,
+	Program const& text_shdr,
+	DrawInfo const& tex_pixel
+) {
+	DEBUG_ONLY(
+	std::cerr << "STARTING DRAW TEXT" << std::endl;
+	std::cerr << "line_height: " << line_height << std::endl;
+	std::cerr << "space_width: " << space_width << std::endl;
+	);
+	int line_height_adj = (float)line_height * 1.2f;
+	int cursor_x = 0;
+	int cursor_y = line_height_adj;
 
+	tex_pixel.vao.activate();
+	for (auto chr : text) {
+		if (chr == ' ') {
+			cursor_x += space_width;
+			continue;
+		}
+		if (chr == '\t') {
+			cursor_x += space_width * tab_size;
+			continue;
+		}
+		if (chr == '\n') {
+			cursor_x = 0;
+			cursor_y += line_height_adj;
+			continue;
+		}
+
+		auto const metrics = char_to_metrics[chr];
+		int x_coord = cursor_x + metrics.offset_x;
+		int y_coord = cursor_y - metrics.offset_y;
+		int width = metrics.width;
+		int height = metrics.height;
+
+		DEBUG_ONLY(
+		std::cerr << "Drawing char '" << chr << "'" << std::endl;
+		std::cerr << "x_coord " << x_coord << " y_coord " << y_coord << std::endl;
+		std::cerr << "width " << width << " height " << height << std::endl;
+		);
+		auto transform = glm::scale(
+			glm::translate(glm::mat4(1.f), {(float)x_coord, (float)y_coord, 0.f}),
+			{width, height, 1.f}
+		);
+
+		TransformUniform transform_uni{transform, "transform"};
+		SimpleUniform<uint32_t, GLuint> chr_uni{(uint32_t)chr, "chr", glUniform1ui};
+		UniformGroup unis{std::move(transform_uni), std::move(chr_uni)};
+		unis.activate(text_shdr.program);
+		tex_pixel.draw();
+
+		cursor_x += metrics.advance;
+	}
+}
+
+std::string slurp(std::filesystem::path&& path) {
+	std::string result;
+	result.resize(std::filesystem::file_size(path));
+	std::ifstream in(path.native(), std::ios::in | std::ios::binary);
+	in.read(result.data(), result.size());
+	return result;
+}
+
+Result<Unit> run(int argc, char* argv[]) {
+	using namespace std::literals;
 	try(auto font_path, get_closest_font_match(conf.fonts));
+
+	if (argc < 2) {
+		return "Missing file argument";
+	}
+	auto file_contents = slurp(std::filesystem::path(argv[1]));
+
+
 	auto path_hash = std::hash<std::string>{}(font_path);
 	auto size_hash = std::hash<int>{}(conf.font_size);
 	auto hash_name = std::to_string(path_hash + (size_hash * 13));
@@ -119,7 +192,7 @@ Result<Unit> run() {
 	auto md_path = font_data_folder / "meta.dat";
 
 	CharMapData char_map_data;
-	if (!(
+	if (true || !(
 		std::filesystem::exists(font_data_folder)
 		&& std::filesystem::exists(tex_path)
 		&& std::filesystem::exists(uv_path)
@@ -145,9 +218,9 @@ Result<Unit> run() {
 		int tex_bmp_height;
 		int tex_bmp_n;
 		auto data = stbi_load(tex_path.c_str(), &tex_bmp_width, &tex_bmp_height, &tex_bmp_n, 1);
-		char_map_data.pixel_data.reserve(tex_bmp_width * tex_bmp_height);
-		char_map_data.pixel_data.assign((PixelData*)data, (PixelData*)(data + pixel_data.capacity()));
+		char_map_data.pixel_data.assign((PixelData*)data, (PixelData*)(data + (tex_bmp_width * tex_bmp_height)));
 		stbi_image_free(data);
+
 
 		auto metrics_size = std::filesystem::file_size(metrics_path);
 		std::ifstream metrics(metrics_path.native(), std::ios::binary);
@@ -163,8 +236,6 @@ Result<Unit> run() {
 		md.read((char*)(&char_map_data.md), sizeof(CharMapData::Metadata));
 	}
 
-	std::raise(SIGINT);
-
 	Window window(800, 600, "cae");
 
 	DEBUG_ONLY(
@@ -179,39 +250,46 @@ Result<Unit> run() {
 	FragShader text_frag_shdr(std::string{text_frag.begin(), text_frag.end()});
 	Program const text_shdr(text_vert_shdr, text_frag_shdr);
 
-	GlobalDrawingUniforms globals(window.width, window.height);
+	GlobalDrawingUniforms globals(window.width, window.height, "proj", "world");
 
-	Texture blank{blank_tex_data, 1, 1, GL_RGB, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR};
+	Texture blank{blank_tex_data, 1, 1, GL_RGB, GL_RGB, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, false};
 
-	int test_png_width;
-	int test_png_height;
-	int test_png_n;
-	auto test_png_data = stbi_load_from_memory(
-		test_png.data(),
-		test_png.size(),
-		&test_png_width,
-		&test_png_height,
-		&test_png_n,
-		3
-	);
-	std::vector<unsigned char> test_png_owned_data((test_png_width * test_png_height) * 3);
-	test_png_owned_data.assign(test_png_data, test_png_data + test_png_owned_data.capacity());
-	stbi_image_free(test_png_data);
-	Texture test{
-		test_png_owned_data,
-		test_png_width,
-		test_png_height,
-		GL_RGB,
+	Texture font{
+		char_map_data.pixel_data,
+		char_map_data.md.image_width,
+		char_map_data.md.image_height,
+		GL_RED,
+		GL_RED,
 		GL_UNSIGNED_BYTE,
-		GL_CLAMP_TO_EDGE,
-		GL_LINEAR_MIPMAP_LINEAR,
-		GL_LINEAR
+		GL_REPEAT,
+		GL_NEAREST_MIPMAP_NEAREST,
+		GL_NEAREST,
+		true
 	};
+
+	TextureUniform font_map{
+		font,
+		"font_map",
+		GL_TEXTURE0
+	};
+
+	BufferTextureUniform char_to_uv_locations(
+		char_map_data.char_to_uv_locations,
+		GL_RGBA32F,
+		"char_to_uv_locations",
+		GL_TEXTURE1
+	);
+
+	UniformGroup always = {
+		std::cref(globals),
+		std::cref(font_map),
+		std::cref(char_to_uv_locations),
+	};
+
 
 	glfwSetWindowSizeCallback(window.handle, window_change_cb);
 
-	auto transform = glm::scale(glm::translate(glm::mat4(1.f), {400.f, 300.f, 0.f}), {100.f, 100.f, 1.f});
-
+	text_shdr.activate();
 	while (!glfwWindowShouldClose(window.handle)) {
 		if (window_size_changed) {
 			window_size_changed = false;
@@ -222,7 +300,8 @@ Result<Unit> run() {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		tex_pixel.draw(text_shdr, UniformGroup{std::cref(globals), TransformUniform{transform}, std::cref(test)});
+		always.activate(text_shdr.program);
+		draw_text(file_contents, char_map_data.md.space_width, conf.tab_size, conf.font_size, char_map_data.char_to_metrics, text_shdr, tex_pixel);
 
 		glfwSwapBuffers(window.handle);
 	}
@@ -234,7 +313,7 @@ int main(int argc, char* argv[]) {
 	(void)argc;
 	(void)argv;
 
-	auto out = run();
+	auto out = run(argc, argv);
 	if (std::holds_alternative<Err>(out)) {
 		std::cerr << "Error: " << std::get<Err>(out) << std::endl;
 	}

@@ -80,7 +80,7 @@ struct DrawInfo {
 	void draw(shaders::Program const& shdr, Uniforms const& uniforms) const {
 		this->vao.use([&]() {
 			shdr.activate();
-			uniforms.activate();
+			uniforms.activate(shdr.program);
 			glDrawElements(GL_TRIANGLES, this->n_indices, GL_UNSIGNED_INT, 0);
 		});
 	}

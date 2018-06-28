@@ -1,24 +1,85 @@
 #pragma once
 
 #include <tuple>
+#include <vector>
 #include <glm/glm.hpp>
+#include <string>
+#include <functional>
+
+#include "index.hh"
+#include "drawing.hh"
+#include "textures.hh"
 
 namespace graphics { namespace opengl { namespace uniforms {
 
 struct GlobalDrawingUniforms {
 	glm::mat4 proj;
 	glm::mat4 world;
+	std::string proj_name;
+	std::string world_name;
 
-	GlobalDrawingUniforms(float window_w, float window_h);
+	GlobalDrawingUniforms(float window_w, float window_h, std::string proj_name, std::string world_name);
 
-	void activate() const;
+	void activate(GLuint program) const;
 	void regen_proj(float window_w, float window_h);
 };
 
 struct TransformUniform {
 	glm::mat4 transform;
+	std::string name;
 
-	void activate() const;
+	void activate(GLuint program) const;
+};
+
+struct BufferTextureUniform {
+	drawing::VBO vbo;
+	textures::Texture texture;
+	std::string name;
+	GLenum texture_unit;
+
+	template<typename Data>
+	BufferTextureUniform(const std::vector<Data>& data, GLenum internal_format, std::string name, GLenum texture_unit)
+	: vbo(data), texture(), name(name), texture_unit(texture_unit) {
+		glBindTexture(GL_TEXTURE_BUFFER, this->texture.texture.id);
+		glTexBuffer(GL_TEXTURE_BUFFER, internal_format, this->vbo.vbo.id);
+	}
+
+	void activate(GLuint program) const;
+};
+
+struct BufferTextureUniformGroup {
+	std::vector<BufferTextureUniform> buffer_textures;
+	GLenum texture_unit_offset;
+
+	void activate(GLuint program) const;
+};
+
+
+struct TextureUniform {
+	textures::Texture& texture;
+	std::string name;
+	GLenum texture_unit;
+
+	void activate(GLuint program) const;
+};
+
+struct TextureUniformGroup {
+	std::vector<TextureUniform> textures;
+	GLenum texture_unit_offset;
+
+	void activate(GLuint program) const;
+};
+
+template <typename Item, typename GLType>
+struct SimpleUniform {
+	Item item;
+	std::string name;
+	typedef void(*uniform_fn_ptr)(GLint, GLType);
+	uniform_fn_ptr fn;
+
+	void activate(GLuint program) const {
+		(*this->fn)(glGetUniformLocation(program, this->name.c_str()), this->item);
+	}
 };
 
 template <typename HUniform, typename... RUniforms>
@@ -28,9 +89,9 @@ struct UniformGroup {
 
 	UniformGroup(HUniform uni, RUniforms... rest) : uni(uni), rest(rest...) {}
 
-	void activate() const {
-		this->uni.activate();
-		this->rest.activate();
+	void activate(GLuint program) const {
+		this->uni.activate(program);
+		this->rest.activate(program);
 	}
 };
 
@@ -42,9 +103,9 @@ struct UniformGroup<std::reference_wrapper<HUniform>, RUniforms...> {
 	UniformGroup(std::reference_wrapper<HUniform> uni_ref, RUniforms... rest)
 	: uni_ref(uni_ref), rest(rest...) {}
 
-	void activate() const {
-		this->uni_ref.get().activate();
-		this->rest.activate();
+	void activate(GLuint program) const {
+		this->uni_ref.get().activate(program);
+		this->rest.activate(program);
 	}
 };
 
@@ -54,8 +115,8 @@ struct UniformGroup<HUniform> {
 
 	UniformGroup(HUniform uni) : uni(uni) {}
 
-	void activate() const {
-		this->uni.activate();
+	void activate(GLuint program) const {
+		this->uni.activate(program);
 	}
 };
 
@@ -65,8 +126,8 @@ struct UniformGroup<std::reference_wrapper<HUniform>> {
 
 	UniformGroup(std::reference_wrapper<HUniform> uni_ref) : uni_ref(uni_ref) {}
 
-	void activate() const {
-		this->uni_ref.get().activate();
+	void activate(GLuint program) const {
+		this->uni_ref.get().activate(program);
 	}
 };
 

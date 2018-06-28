@@ -13,16 +13,20 @@ struct Texture {
 	void activate() const;
 	void deactivate() const;
 
+	Texture() : texture(glGenTextures, glDeleteTextures) {}
+
 	template<typename Data>
 	Texture(
 		std::vector<Data> const& data,
 		GLsizei width,
 		GLsizei height,
+		GLenum internal_format,
 		GLenum format,
 		GLenum type,
 		GLenum wrapping,
 		GLenum min_filtering,
-		GLenum mag_filtering
+		GLenum mag_filtering,
+		bool enable_mips
 	) : texture(glGenTextures, glDeleteTextures) {
 		this->activate();
 
@@ -32,9 +36,11 @@ struct Texture {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filtering);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filtering);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, type, data.data());
+		glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, data.data());
 
-		glGenerateMipmap(GL_TEXTURE_2D);
+		if (enable_mips) {
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
 		this->deactivate();
 	}
 };
