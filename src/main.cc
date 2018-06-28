@@ -192,7 +192,7 @@ Result<Unit> run(int argc, char* argv[]) {
 	auto md_path = font_data_folder / "meta.dat";
 
 	CharMapData char_map_data;
-	if (!(
+	if (true || !(
 		std::filesystem::exists(font_data_folder)
 		&& std::filesystem::exists(tex_path)
 		&& std::filesystem::exists(uv_path)
