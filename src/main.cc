@@ -392,7 +392,7 @@ Result<Unit> run(int argc, char* argv[]) {
 		}
 
 		if (screen_dragged) {
-			globals.world = glm::translate(globals.world, {drag_delta_x, drag_delta_y, 0.f});
+			globals.world = glm::translate(globals.world, {2*drag_delta_x, 2*drag_delta_y, 0.f});
 			drag_delta_x = 0;
 			drag_delta_y = 0;
 			screen_dragged = false;
