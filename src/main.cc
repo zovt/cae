@@ -53,7 +53,7 @@ using namespace graphics::opengl::uniforms;
 using namespace graphics::opengl::textures;
 
 static const Config conf(
-	{"Iosevka Term"},
+	{"Iosevka"},
 	RGBColor(255, 255, 255),
 	RGBColor(30, 30, 30),
 	2,
@@ -192,7 +192,7 @@ Result<Unit> run(int argc, char* argv[]) {
 	auto md_path = font_data_folder / "meta.dat";
 
 	CharMapData char_map_data;
-	if (true || !(
+	if (!(
 		std::filesystem::exists(font_data_folder)
 		&& std::filesystem::exists(tex_path)
 		&& std::filesystem::exists(uv_path)
