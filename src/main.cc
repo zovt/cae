@@ -8,8 +8,6 @@
 #include <cstdlib>
 #include <functional>
 #include <filesystem>
-#include <chrono>
-#include <thread>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -243,12 +241,10 @@ Result<Unit> run(int argc, char* argv[]) {
 	text_shdr.activate();
 	always.activate(text_shdr.program);
 	while (!glfwWindowShouldClose(window.handle)) {
-		glfwPollEvents();
+		glfwWaitEvents();
 		if (draw_info.needs_redraw) {
 			draw_info.draw(buffer);
 			draw_info.needs_redraw = false;
-		} else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 	}
 
