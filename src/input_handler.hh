@@ -42,7 +42,6 @@ struct InputHandler {
 	buffer::Buffer& buffer;
 	graphics::opengl::buffer_draw_info::BufferDrawInfo& buffer_draw_info;
 
-
 	int mouse_button_mask;
 	int mod_mask;
 	common_state::ScrollState scroll_st;

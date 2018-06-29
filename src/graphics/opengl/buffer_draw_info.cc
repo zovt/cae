@@ -75,6 +75,7 @@ void BufferDrawInfo::resize_window(int width, int height) {
 	this->window.width = width;
 	this->window.height = height;
 	this->always.uni.regen_proj(width, height);
+	this->needs_redraw = true;
 }
 
 void BufferDrawInfo::scroll(ScrollState offsets) {
@@ -86,6 +87,7 @@ void BufferDrawInfo::scroll(ScrollState offsets) {
 			0.f
 		}
 	);
+	this->needs_redraw = true;
 }
 
 void BufferDrawInfo::scroll_drag(ScrollState offsets) {
@@ -97,4 +99,5 @@ void BufferDrawInfo::scroll_drag(ScrollState offsets) {
 			0.f
 		}
 	);
+	this->needs_redraw = true;
 }

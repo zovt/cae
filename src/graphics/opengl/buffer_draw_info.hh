@@ -28,6 +28,7 @@ struct BufferDrawInfo {
 	int space_width;
 	int tab_size;
 	int line_height;
+	bool needs_redraw;
 
 	void draw(buffer::Buffer const& buffer) const;
 	void scroll(common_state::ScrollState offsets);

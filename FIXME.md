@@ -1,3 +1,2 @@
 - Use span instead of std::vector references
 - UTF-8 Handling
-- Latency on drag scroll

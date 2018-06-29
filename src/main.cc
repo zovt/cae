@@ -224,6 +224,7 @@ Result<Unit> run(int argc, char* argv[]) {
 		char_map_data.md.space_width,
 		conf.tab_size,
 		char_map_data.md.line_height,
+		true,
 	};
 
 	InputHandler::glfw_register_callbacks(window.handle);
@@ -241,12 +242,14 @@ Result<Unit> run(int argc, char* argv[]) {
 
 	text_shdr.activate();
 	always.activate(text_shdr.program);
-	draw_info.draw(buffer);
-
-	text_shdr.activate();
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwPollEvents();
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		if (draw_info.needs_redraw) {
+			draw_info.draw(buffer);
+			draw_info.needs_redraw = false;
+		} else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		}
 	}
 
 	return unit;

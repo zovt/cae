@@ -147,19 +147,16 @@ void InputHandler::resolve() {
 	print_mouse_buttons(this->mouse_button_mask);
 	print_modifiers(this->mod_mask);
 	);
-	bool needs_redraw = false;
 	if ((this->scroll_st.off_x != 0) || (this->scroll_st.off_y != 0)) {
 		DEBUG_ONLY(
 		std::cerr << "Scrolling" << std::endl;
 		);
 		this->buffer_draw_info.scroll(this->scroll_st);
-		needs_redraw = true;
 		this->scroll_st = {};
 	}
 
 	if (this->window_change_st.width > 0) {
 		this->buffer_draw_info.resize_window(this->window_change_st.width, this->window_change_st.height);
-		needs_redraw = true;
 		this->window_change_st = {};
 	}
 
@@ -169,16 +166,8 @@ void InputHandler::resolve() {
 	if ((this->mouse_button_mask & (int)MouseButton::Mouse1)
 		&& (this->mod_mask & (int)Modifier::Ctrl)) {
 		this->buffer_draw_info.scroll_drag(ScrollState {
-			(this->cursor_pos_st_current.pos_x - before.pos_x) * 2,
-			(this->cursor_pos_st_current.pos_y - before.pos_y) * 2
+			(this->cursor_pos_st_current.pos_x - before.pos_x),
+			(this->cursor_pos_st_current.pos_y - before.pos_y)
 		});
-		needs_redraw = true;
-	}
-
-	if (needs_redraw) {
-		DEBUG_ONLY(
-		std::cerr << "Screen needs refresh" << std::endl;
-		);
-		this->buffer_draw_info.draw(this->buffer);
 	}
 }
