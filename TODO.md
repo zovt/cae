@@ -2,3 +2,4 @@
 - Draw Optimizations
 	- Viewport culling?
 	- Instanced rendering?
+- Lazy Redraw
