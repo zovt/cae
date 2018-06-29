@@ -61,11 +61,20 @@ void cursor_pos_cb(GLFWwindow* window, double xpos, double ypos) {
 	active_input_handler->handle_cursor_pos(xpos, ypos);
 }
 
+void window_pos_cb(GLFWwindow* window, int xpos, int ypos) {
+	(void)window;
+	(void)xpos;
+	(void)ypos;
+
+	active_input_handler->buffer_draw_info.needs_redraw = true;
+}
+
 void InputHandler::glfw_register_callbacks(GLFWwindow* window) {
 	glfwSetScrollCallback(window, mouse_scroll_cb);
 	glfwSetKeyCallback(window, key_cb);
 	glfwSetCursorPosCallback(window, cursor_pos_cb);
 	glfwSetMouseButtonCallback(window, mouse_button_cb);
+	glfwSetWindowPosCallback(window, window_pos_cb);
 }
 
 void InputHandler::make_active() {
