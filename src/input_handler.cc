@@ -73,6 +73,7 @@ void InputHandler::make_active() {
 }
 
 void InputHandler::handle_mouse_button(MouseButton button, UpDownState state, int mod_mask) {
+	this->mod_mask = 0;
 	switch (state) {
 		case UpDownState::Down:
 			this->mouse_button_mask = this->mouse_button_mask | (int)button;
@@ -80,7 +81,6 @@ void InputHandler::handle_mouse_button(MouseButton button, UpDownState state, in
 			break;
 		case UpDownState::Up:
 			this->mouse_button_mask = this->mouse_button_mask & ~(int)button;
-			this->mod_mask = 0;
 			break;
 	}
 
