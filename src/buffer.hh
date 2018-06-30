@@ -21,6 +21,7 @@ struct Buffer {
 	std::vector<uint8_t> contents;
 	std::filesystem::path path;
 
+	// characters are inserted AT this index
 	PointOffset point;
 
 	void set_point(PointOffset pos);
