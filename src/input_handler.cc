@@ -18,9 +18,8 @@ MouseButton convert_glfw_mouse_button(int glfw_button) {
 
 UpDownState convert_glfw_action(int action) {
 	return
-		action == GLFW_PRESS ? UpDownState::Down
-		: action == GLFW_RELEASE ? UpDownState::Up
-		: (UpDownState)0;
+		action == GLFW_RELEASE ? UpDownState::Up
+		: UpDownState::Down;
 }
 
 int convert_glfw_mod_mask(int mods) {
