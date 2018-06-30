@@ -137,7 +137,8 @@ PointOffset BufferDrawInfo::get_mouse_target(Buffer const& buffer, CursorPosStat
 	));
 	auto offset = (orig * world_inv_tr);
 
-	auto n_lines = (int)((float)offset.y / ((float)this->line_height * 1.2));
+	int line_height_adj = (float)this->line_height * 1.2f;
+	auto n_lines = (int)((float)offset.y / line_height_adj);
 	size_t point_offset = 0;
 	for (; point_offset < buffer.contents.size(); ++point_offset) {
 		if (n_lines <= 0) {
