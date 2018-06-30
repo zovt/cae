@@ -122,6 +122,10 @@ void BufferDrawInfo::scroll_drag(ScrollState offsets) {
 }
 
 PointOffset BufferDrawInfo::get_mouse_target(Buffer const& buffer, CursorPosState state) {
+	if (buffer.contents.size() == 0) {
+		return { 0 };
+	}
+
 	auto x = state.pos_x;
 	auto y = state.pos_y;
 	glm::vec4 orig{x, y, 0.f, 1.f};

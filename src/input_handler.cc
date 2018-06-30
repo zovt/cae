@@ -42,11 +42,10 @@ void mouse_scroll_cb(GLFWwindow* window, double x_off, double y_off) {
 	active_input_handler->handle_mouse_scroll(x_off, y_off);
 }
 
-void key_cb(GLFWwindow* window, int key, int scancode, int action, int mods) {
+void key_cb(GLFWwindow* window, unsigned int codepoint, int mods) {
 	(void)window;
-	(void)scancode;
 
-	active_input_handler->handle_key(key, convert_glfw_action(action), convert_glfw_mod_mask(mods));
+	active_input_handler->handle_char(codepoint, convert_glfw_mod_mask(mods));
 }
 
 void mouse_button_cb(GLFWwindow* window, int button, int action, int mods) {
@@ -71,7 +70,7 @@ void window_pos_cb(GLFWwindow* window, int xpos, int ypos) {
 
 void InputHandler::glfw_register_callbacks(GLFWwindow* window) {
 	glfwSetScrollCallback(window, mouse_scroll_cb);
-	glfwSetKeyCallback(window, key_cb);
+	glfwSetCharModsCallback(window, key_cb);
 	glfwSetCursorPosCallback(window, cursor_pos_cb);
 	glfwSetMouseButtonCallback(window, mouse_button_cb);
 	glfwSetWindowPosCallback(window, window_pos_cb);
@@ -108,8 +107,14 @@ void InputHandler::handle_window_change(int width, int height) {
 	this->resolve();
 }
 
-void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
+void InputHandler::handle_char(uint8_t key, int mod_mask) {
 	this->mod_mask = this->mod_mask | mod_mask;
+	std::cout << key << std::endl;
+
+	this->buffer.contents.insert(this->buffer.contents.begin() + this->buffer.point.index, key);
+	++this->buffer.point.index;
+
+	this->buffer_draw_info.needs_redraw = true;
 	this->resolve();
 }
 
