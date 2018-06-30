@@ -17,6 +17,7 @@ namespace graphics { namespace opengl { namespace buffer_draw_info {
 struct BufferDrawInfo {
 	drawing::DrawInfo const& tex_pixel;
 	shaders::Program const& text_shdr;
+	shaders::Program const& point_shdr;
 
 	uniforms::UniformGroup<
 		uniforms::GlobalDrawingUniforms&,
@@ -34,6 +35,7 @@ struct BufferDrawInfo {
 	void scroll(common_state::ScrollState offsets);
 	void scroll_drag(common_state::ScrollState offsets);
 	void resize_window(int width, int height);
+	buffer::PointOffset get_mouse_target(buffer::Buffer const& buffer, common_state::CursorPosState state);
 };
 
 } } }

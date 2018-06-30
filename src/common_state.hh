@@ -7,4 +7,10 @@ struct ScrollState {
 	double off_y;
 };
 
+struct CursorPosState {
+	double pos_x;
+	double pos_y;
+};
+
+
 }

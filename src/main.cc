@@ -37,7 +37,8 @@
 #include "input_handler.hh"
 #include "resources/shaders/opengl/text.vert.hh"
 #include "resources/shaders/opengl/text.frag.hh"
-#include "resources/textures/test.png.hh"
+#include "resources/shaders/opengl/point.vert.hh"
+#include "resources/shaders/opengl/point.frag.hh"
 
 using namespace config;
 using namespace color;
@@ -173,6 +174,10 @@ Result<Unit> run(int argc, char* argv[]) {
 	FragShader text_frag_shdr(std::string{text_frag.begin(), text_frag.end()});
 	Program const text_shdr(text_vert_shdr, text_frag_shdr);
 
+	VertShader point_vert_shdr(std::string{point_vert.begin(), point_vert.end()});
+	FragShader point_frag_shdr(std::string{point_frag.begin(), point_frag.end()});
+	Program const point_shdr(point_vert_shdr, point_frag_shdr);
+
 	GlobalDrawingUniforms globals(window.width, window.height, "proj", "world");
 
 	Texture blank{blank_tex_data, 1, 1, GL_RGB, GL_RGB, GL_FLOAT, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, false};
@@ -216,6 +221,7 @@ Result<Unit> run(int argc, char* argv[]) {
 	BufferDrawInfo draw_info{
 		tex_pixel,
 		text_shdr,
+		point_shdr,
 		always,
 		window,
 		char_map_data.char_to_metrics,
@@ -238,8 +244,6 @@ Result<Unit> run(int argc, char* argv[]) {
 	};
 	handler.make_active();
 
-	text_shdr.activate();
-	always.activate(text_shdr.program);
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwWaitEvents();
 		if (draw_info.needs_redraw) {

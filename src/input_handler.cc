@@ -178,5 +178,11 @@ void InputHandler::resolve() {
 			(this->cursor_pos_st_current.pos_x - before.pos_x),
 			(this->cursor_pos_st_current.pos_y - before.pos_y)
 		});
+	} else if (this->mouse_button_mask & (int)MouseButton::Mouse1) {
+		auto point_pos = this->buffer_draw_info.get_mouse_target(
+			this->buffer,
+			this->cursor_pos_st_current
+		);
+		this->buffer.set_point(point_pos);
 	}
 }

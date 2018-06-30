@@ -33,11 +33,6 @@ struct WindowChangeState {
 	int height;
 };
 
-struct CursorPosState {
-	double pos_x;
-	double pos_y;
-};
-
 struct InputHandler {
 	buffer::Buffer& buffer;
 	graphics::opengl::buffer_draw_info::BufferDrawInfo& buffer_draw_info;
@@ -46,8 +41,8 @@ struct InputHandler {
 	int mod_mask;
 	common_state::ScrollState scroll_st;
 	WindowChangeState window_change_st;
-	CursorPosState cursor_pos_st_old;
-	CursorPosState cursor_pos_st_current;
+	common_state::CursorPosState cursor_pos_st_old;
+	common_state::CursorPosState cursor_pos_st_current;
 
 	void make_active();
 	void resolve();

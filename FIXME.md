@@ -2,3 +2,4 @@
 - UTF-8 Handling
 - Use callbacks only to make event queue, and then handle the input each loop
 	- This *should* fix the latency
+- Make header changes not recompile the whole project

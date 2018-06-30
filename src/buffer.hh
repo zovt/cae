@@ -7,10 +7,23 @@
 
 namespace buffer {
 
+struct PointPos {
+	size_t line;
+	size_t offset;
+};
+
+struct PointOffset {
+	size_t index;
+};
+
 struct Buffer {
 	// TODO: Use a more optimized data structure to hold buffer contents
 	std::vector<uint8_t> contents;
 	std::filesystem::path path;
+
+	PointOffset point;
+
+	void set_point(PointOffset pos);
 };
 
 Buffer slurp_to_buffer(std::filesystem::path path);
