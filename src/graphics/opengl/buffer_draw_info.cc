@@ -23,7 +23,6 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 	auto point_pos_x = 0;
 	auto point_pos_y = 0;
 
-
 	// FIXME: Make this configurable
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -75,6 +74,10 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 		this->tex_pixel.draw();
 
 		cursor_x += metrics.advance;
+	}
+	if (buffer.point.index == buffer.contents.size()) {
+		point_pos_x = cursor_x;
+		point_pos_y = cursor_y;
 	}
 
 	this->point_shdr.activate();
