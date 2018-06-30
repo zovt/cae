@@ -42,10 +42,17 @@ void mouse_scroll_cb(GLFWwindow* window, double x_off, double y_off) {
 	active_input_handler->handle_mouse_scroll(x_off, y_off);
 }
 
-void key_cb(GLFWwindow* window, unsigned int codepoint, int mods) {
+void char_cb(GLFWwindow* window, unsigned int codepoint, int mods) {
 	(void)window;
 
 	active_input_handler->handle_char(codepoint, convert_glfw_mod_mask(mods));
+}
+
+void key_cb(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	(void)window;
+	(void)scancode;
+
+	active_input_handler->handle_key(key, convert_glfw_action(action), convert_glfw_mod_mask(mods));
 }
 
 void mouse_button_cb(GLFWwindow* window, int button, int action, int mods) {
@@ -70,7 +77,8 @@ void window_pos_cb(GLFWwindow* window, int xpos, int ypos) {
 
 void InputHandler::glfw_register_callbacks(GLFWwindow* window) {
 	glfwSetScrollCallback(window, mouse_scroll_cb);
-	glfwSetCharModsCallback(window, key_cb);
+	glfwSetCharModsCallback(window, char_cb);
+	glfwSetKeyCallback(window, key_cb);
 	glfwSetCursorPosCallback(window, cursor_pos_cb);
 	glfwSetMouseButtonCallback(window, mouse_button_cb);
 	glfwSetWindowPosCallback(window, window_pos_cb);
@@ -107,9 +115,26 @@ void InputHandler::handle_window_change(int width, int height) {
 	this->resolve();
 }
 
+void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
+	if (state == UpDownState::Up) {
+		return;
+	}
+	switch (key) {
+		case GLFW_KEY_BACKSPACE:
+			this->buffer.contents.erase(this->buffer.contents.begin() + this->buffer.point.index - 1);
+			--this->buffer.point.index;
+			this->buffer_draw_info.needs_redraw = true;
+			break;
+		case GLFW_KEY_ENTER:
+			this->buffer.contents.insert(this->buffer.contents.begin() + this->buffer.point.index, '\n');
+			++this->buffer.point.index;
+			this->buffer_draw_info.needs_redraw = true;
+			break;
+	}
+}
+
 void InputHandler::handle_char(uint8_t key, int mod_mask) {
 	this->mod_mask = this->mod_mask | mod_mask;
-	std::cout << key << std::endl;
 
 	this->buffer.contents.insert(this->buffer.contents.begin() + this->buffer.point.index, key);
 	++this->buffer.point.index;
@@ -155,6 +180,8 @@ void print_modifiers(int mod_mask) {
 	std::cerr << std::endl;
 }
 
+// FIXME: This call should be synchronous, so just handle things in the
+// associated handler
 void InputHandler::resolve() {
 	DEBUG_ONLY(
 	std::cerr << "Resolving events" << std::endl;

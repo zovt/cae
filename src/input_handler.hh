@@ -50,6 +50,7 @@ struct InputHandler {
 	void handle_mouse_scroll(double x_off, double y_off);
 	void handle_window_change(int width, int height);
 	void handle_char(uint8_t codepoint, int mod_mask);
+	void handle_key(int key, UpDownState state, int mod_mask);
 	void handle_cursor_pos(double xpos, double ypos);
 
 	static void glfw_register_callbacks(GLFWwindow* window);
