@@ -14,3 +14,13 @@ Buffer buffer::slurp_to_buffer(std::filesystem::path path) {
 void Buffer::set_point(PointOffset pos) {
 	this->point = pos;
 }
+
+void Buffer::backspace() {
+	this->contents.erase(this->contents.begin() + this->point.index - 1);
+	--this->point.index;
+}
+
+void Buffer::insert(uint8_t chr) {
+	this->contents.insert(this->contents.begin() + this->point.index, chr);
+	++this->point.index;
+}

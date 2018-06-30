@@ -58,7 +58,7 @@ using namespace graphics::opengl::textures;
 using namespace graphics::opengl::buffer_draw_info;
 
 static const Config conf(
-	{"Iosevka"},
+	{"Iosevka Term Medium"},
 	RGBColor(255, 255, 255),
 	RGBColor(30, 30, 30),
 	2,

@@ -24,6 +24,8 @@ struct Buffer {
 	PointOffset point;
 
 	void set_point(PointOffset pos);
+	void backspace();
+	void insert(uint8_t chr);
 };
 
 Buffer slurp_to_buffer(std::filesystem::path path);

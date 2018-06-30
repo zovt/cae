@@ -120,26 +120,21 @@ void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
 	}
 	switch (key) {
 		case GLFW_KEY_BACKSPACE:
-			this->buffer.contents.erase(this->buffer.contents.begin() + this->buffer.point.index - 1);
-			--this->buffer.point.index;
+			this->buffer.backspace();
 			this->buffer_draw_info.needs_redraw = true;
 			break;
 		case GLFW_KEY_ENTER:
-			this->buffer.contents.insert(this->buffer.contents.begin() + this->buffer.point.index, '\n');
-			++this->buffer.point.index;
+			this->buffer.insert('\n');
 			this->buffer_draw_info.needs_redraw = true;
 			break;
 	}
 }
 
-void InputHandler::handle_char(uint8_t key, int mod_mask) {
+void InputHandler::handle_char(uint8_t codepoint, int mod_mask) {
 	this->mod_mask = this->mod_mask | mod_mask;
 
-	this->buffer.contents.insert(this->buffer.contents.begin() + this->buffer.point.index, key);
-	++this->buffer.point.index;
-
+	this->buffer.insert(codepoint);
 	this->buffer_draw_info.needs_redraw = true;
-	this->resolve();
 }
 
 void InputHandler::handle_cursor_pos(double pos_x, double pos_y) {
