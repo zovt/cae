@@ -127,12 +127,25 @@ void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
 			this->buffer.insert('\n');
 			this->buffer_draw_info.needs_redraw = true;
 			break;
+		case GLFW_KEY_Z:
+			if (mod_mask & (int)Modifier::Ctrl) {
+				std::cout << "Undo" << std::endl;
+				this->buffer.undo();
+				this->buffer_draw_info.needs_redraw = true;
+			}
+			break;
+		case GLFW_KEY_R:
+			if (mod_mask & (int)Modifier::Ctrl) {
+				std::cout << "Redo" << std::endl;
+				this->buffer.redo();
+				this->buffer_draw_info.needs_redraw = true;
+			}
+			break;
 	}
 }
 
 void InputHandler::handle_char(uint8_t codepoint, int mod_mask) {
 	this->mod_mask = this->mod_mask | mod_mask;
-
 	this->buffer.insert(codepoint);
 	this->buffer_draw_info.needs_redraw = true;
 }
