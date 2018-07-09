@@ -2,6 +2,7 @@ CXXFLAGS := -std=c++17 -g -Wall -Wextra \
 	-Wpedantic ${CXXFLAGS} \
 	-Ibuild/include \
 	-Ilib/stb \
+	-Ilib/GSL/include \
 	-fno-exceptions \
 	$(shell pkg-config --cflags fontconfig glfw3 glew)
 

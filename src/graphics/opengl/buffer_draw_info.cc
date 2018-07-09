@@ -4,7 +4,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../macros.hh"
+#undef CAE_DEBUG
+#ifdef CAE_DRAW_DEBUG
+#define CAE_DEBUG
+#endif
+#define DEBUG_NAMESPACE "drawing"
+#include "../../debug.hh"
 
 using namespace graphics::opengl::buffer_draw_info;
 using namespace graphics::opengl::uniforms;
@@ -12,11 +17,10 @@ using namespace buffer;
 using namespace common_state;
 
 void BufferDrawInfo::draw(Buffer const& buffer) const {
-	DEBUG_ONLY(
-	std::cerr << "STARTING DRAW TEXT" << std::endl;
-	std::cerr << "line_height: " << this->line_height << std::endl;
-	std::cerr << "space_width: " << this->space_width << std::endl;
-	);
+	dbg_println("starting draw text");
+	dbg_printval(line_height);
+	dbg_printval(space_width);
+
 	int line_height_adj = (float)this->line_height * 1.2f;
 	int cursor_x = 0;
 	int cursor_y = line_height_adj;
@@ -57,11 +61,11 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 		int width = metrics.width;
 		int height = metrics.height;
 
-		DEBUG_ONLY(
-		std::cerr << "Drawing char '" << chr << "'" << std::endl;
-		std::cerr << "x_coord " << x_coord << " y_coord " << y_coord << std::endl;
-		std::cerr << "width " << width << " height " << height << std::endl;
-		);
+		dbg_println("Drawing char '%c'", chr);
+		dbg_printval(x_coord);
+		dbg_printval(y_coord);
+		dbg_printval(width);
+		dbg_printval(height);
 		auto transform = glm::scale(
 			glm::translate(glm::mat4(1.f), {(float)x_coord, (float)y_coord, 0.f}),
 			{width, height, 1.f}

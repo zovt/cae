@@ -1,7 +1,9 @@
 #include "drawing.hh"
 
 #include <iostream>
-#include "../../macros.hh"
+
+#define DEBUG_NAMESPACE "drawing"
+#include "../../debug.hh"
 
 using namespace graphics::opengl::drawing;
 using namespace graphics::opengl::shaders;
@@ -17,9 +19,7 @@ GLResource::GLResource(GLResource::create_func create, GLResource::destroy_func 
 }
 
 GLResource::~GLResource() {
-	DEBUG_ONLY(
-	std::cerr << "Destroying GL Resource " << this->id << std::endl;
-	);
+	dbg_println("Destroying GL Resource %d", this->id);
 	(*this->destroy)(1, &this->id);
 }
 

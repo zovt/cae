@@ -4,93 +4,165 @@
 #include <fstream>
 #include <iostream>
 
+#define DEBUG_NAMESPACE "buffer"
+#include "debug.hh"
+
 using namespace buffer;
 
+Diff Diff::inverse() const {
+	if (std::holds_alternative<Addition>(element)) {
+		auto addition = std::get<Addition>(element);
+
+		std::vector<uint8_t> contents = {addition.contents.rbegin(), addition.contents.rend()};
+		return Diff {
+			Deletion {
+				contents,
+				addition.start,
+				addition.end
+			}
+		};
+	} else if (std::holds_alternative<Deletion>(element)) {
+		auto deletion = std::get<Deletion>(element);
+
+		std::vector<uint8_t> contents = {deletion.contents.rbegin(), deletion.contents.rend()};
+		return Diff {
+			Addition {
+				contents,
+				deletion.start,
+				deletion.end
+			}
+		};
+	} else {
+		return Diff { unit };
+	}
+}
+
+void Diff::apply(std::vector<uint8_t>& contents) const {
+	if (std::holds_alternative<Addition>(element)) {
+		auto addition = std::get<Addition>(element);
+		dbg_printval(addition.start);
+		dbg_printval(addition.end);
+		dbg_printval((char*)addition.contents.data());
+		contents.insert(
+			contents.begin() + addition.start,
+			addition.contents.begin(),
+			addition.contents.end()
+		);
+	} else if (std::holds_alternative<Deletion>(element)) {
+		auto deletion = std::get<Deletion>(element);
+		dbg_printval(deletion.start);
+		dbg_printval(deletion.end);
+		dbg_printval((char*)deletion.contents.data());
+		contents.erase(
+			contents.begin() + deletion.start,
+			contents.begin() + deletion.end
+		);
+	}
+}
+
 Buffer buffer::slurp_to_buffer(std::filesystem::path path) {
+	Buffer buf{};
 	std::vector<uint8_t> contents(std::filesystem::file_size(path));
 	std::ifstream in(path.native(), std::ios::in | std::ios::binary);
 	in.read((char*)contents.data(), contents.size());
-	return { contents, path, {}, {{{}, 0, 0}}, {}, 1 };
+
+	buf.contents = std::move(contents);
+	buf.path = path;
+	buf.current_change = Diff { unit };
+	return buf;
 }
 
-void Buffer::_cut_piece() {
-	std::cout << this->piece_idx << std::endl;
-	auto& current_piece = this->pieces[this->piece_idx];
-
-	if (current_piece.start == current_piece.end) {
-		return;
-	}
-
-	current_piece.end = this->point.index;
-
-	current_piece.contents.clear();
-	auto n_chars = this->point.index - current_piece.start;
-	current_piece.contents.reserve(n_chars);
-	std::memcpy(
-		current_piece.contents.data(),
-		this->contents.data() + current_piece.start,
-		n_chars
-	);
-
-	Piece new_piece{{}, this->point.index, this->point.index};
-	++this->piece_idx;
-	++this->active_pieces;
-	if (this->piece_idx == this->pieces.size()) {
-		this->pieces.push_back(new_piece);
-	} else {
-		this->pieces[this->piece_idx] = new_piece;
-	}
-}
+Buffer::Buffer()
+: contents{}, path{}, point{} {}
 
 void Buffer::set_point(PointOffset pos) {
-	this->_cut_piece();
-	this->point = pos;
+	point = pos;
+
+	if (!std::holds_alternative<Unit>(current_change.element)) {
+		undo_chain.push_back(current_change);
+	}
+	current_change.element = unit;
 }
 
 void Buffer::backspace() {
-	this->active_pieces = this->piece_idx;
-	this->contents.erase(this->contents.begin() + this->point.index - 1);
-	--this->point.index;
-}
-
-void Buffer::insert(uint8_t chr) {
-	this->active_pieces = this->piece_idx;
-	this->contents.insert(this->contents.begin() + this->point.index, chr);
-	++this->point.index;
-}
-
-void Buffer::undo() {
-	std::cout << this->piece_idx << std::endl;
-	std::cout << this->active_pieces << std::endl;
-
-	auto const& current_piece = this->pieces[this->piece_idx];
-	std::cout << (char*)current_piece.contents.data() << std::endl;
-	this->contents.erase(
-		this->contents.begin() + current_piece.start,
-		this->contents.begin() + this->point.index
-	);
-
-	if (this->piece_idx == 0) {
-		this->pieces.insert(this->pieces.begin() + this->piece_idx + 1, current_piece);
-		this->pieces[this->piece_idx] = {{}, this->point.index, this->point.index};
-	} else {
-		--this->piece_idx;
-	}
-}
-
-void Buffer::redo() {
-	std::cout << this->piece_idx << std::endl;
-	std::cout << this->active_pieces << std::endl;
-	if (this->piece_idx == this->active_pieces - 1) {
+	dbg_printval(point.index);
+	if (point.index == 0) {
 		return;
 	}
 
-	++this->piece_idx;
-	auto const& current_piece = this->pieces[this->piece_idx];
-	std::cout << (char*)current_piece.contents.data() << std::endl;
-	this->contents.insert(
-		this->contents.begin() + current_piece.start,
-		current_piece.contents.begin(),
-		current_piece.contents.end()
-	);
+	redo_chain.clear();
+	auto chr = contents[point.index - 1];
+	contents.erase(contents.begin() + point.index - 1);
+	--point.index;
+
+	if (std::holds_alternative<Deletion>(current_change.element)) {
+		dbg_println("Backspace has deletion");
+		auto& deletion = std::get<Deletion>(current_change.element);
+		deletion.contents.push_back(chr);
+		--deletion.start;
+	} else {
+		if (!std::holds_alternative<Unit>(current_change.element)) {
+			dbg_println("Backspace has unit");
+			undo_chain.push_back(current_change.inverse());
+		}
+		dbg_println("New Deletion");
+		current_change.element = Deletion{{chr}, point.index, point.index + 1};
+	}
+}
+
+void Buffer::insert(uint8_t chr) {
+	redo_chain.clear();
+	contents.insert(contents.begin() + point.index, chr);
+	++point.index;
+
+	if (std::holds_alternative<Addition>(current_change.element)) {
+		dbg_println("Insert has addition");
+		auto& addition = std::get<Addition>(current_change.element);
+		addition.contents.push_back(chr);
+		++addition.end;
+		dbg_printval(addition.end);
+	} else {
+		if (!std::holds_alternative<Unit>(current_change.element)) {
+			dbg_println("Insert has unit");
+			undo_chain.push_back(current_change.inverse());
+		}
+		dbg_println("New addition");
+		current_change.element = Addition{{chr}, point.index - 1, point.index};
+	}
+}
+
+void Buffer::undo() {
+	dbg_println("Undo");
+	if (!std::holds_alternative<Unit>(current_change.element)) {
+		dbg_println("Committing current change");
+		undo_chain.push_back(current_change.inverse());
+		current_change.element = unit;
+	}
+
+	if (undo_chain.size() == 0) {
+		dbg_println("Nothing to undo");
+		return;
+	}
+
+	auto change = undo_chain.back();
+	undo_chain.pop_back();
+	redo_chain.push_back(change.inverse());
+	change.apply(contents);
+
+	point.index = std::min(point.index, contents.size());
+}
+
+void Buffer::redo() {
+	dbg_println("Redo");
+	if (redo_chain.size() == 0) {
+		dbg_println("Nothing to redo");
+		return;
+	}
+
+	auto change = redo_chain.back();
+	redo_chain.pop_back();
+	undo_chain.push_back(change.inverse());
+	change.apply(contents);
+
+	point.index = std::min(point.index, contents.size());
 }

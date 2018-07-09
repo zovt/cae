@@ -3,38 +3,48 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <variant>
 
 #include "common_state.hh"
+#include "unit.hh"
 
 namespace buffer {
-
-struct PointPos {
-	size_t line;
-	size_t offset;
-};
 
 struct PointOffset {
 	size_t index;
 };
 
-struct Piece {
+struct Addition {
 	std::vector<uint8_t> contents;
 	size_t start;
 	size_t end;
 };
 
+struct Deletion {
+	std::vector<uint8_t> contents;
+	size_t start;
+	size_t end;
+};
+
+struct Diff {
+	std::variant<Addition, Deletion, Unit> element;
+
+	Diff inverse() const;
+	void apply(std::vector<uint8_t>& contents) const;
+};
+
 struct Buffer {
-	// TODO: Use a more optimized data structure to hold buffer contents
+	Buffer();
+
 	std::vector<uint8_t> contents;
 	std::filesystem::path path;
 
 	// characters are inserted AT this index
 	PointOffset point;
 
-	std::vector<Piece> pieces;
-	size_t piece_idx;
-	size_t active_pieces;
-	void _cut_piece();
+	Diff current_change;
+	std::vector<Diff> undo_chain;
+	std::vector<Diff> redo_chain;
 
 	void set_point(PointOffset pos);
 	void backspace();

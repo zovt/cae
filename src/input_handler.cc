@@ -1,9 +1,11 @@
 #include "input_handler.hh"
 
 #include <iostream>
+#include <cstdio>
 
 #include "graphics/opengl/index.hh"
-#include "macros.hh"
+#define DEBUG_NAMESPACE "input"
+#include "debug.hh"
 
 using namespace input_handler;
 using namespace common_state;
@@ -129,14 +131,12 @@ void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
 			break;
 		case GLFW_KEY_Z:
 			if (mod_mask & (int)Modifier::Ctrl) {
-				std::cout << "Undo" << std::endl;
 				this->buffer.undo();
 				this->buffer_draw_info.needs_redraw = true;
 			}
 			break;
 		case GLFW_KEY_R:
 			if (mod_mask & (int)Modifier::Ctrl) {
-				std::cout << "Redo" << std::endl;
 				this->buffer.redo();
 				this->buffer_draw_info.needs_redraw = true;
 			}
@@ -157,41 +157,43 @@ void InputHandler::handle_cursor_pos(double pos_x, double pos_y) {
 }
 
 void print_mouse_buttons(int mouse_mask) {
-	std::cerr << mouse_mask << " ";
+	dbg_print("");
+	fprintf(stderr, "%d ", mouse_mask);
 	if (mouse_mask & (int)MouseButton::Mouse1) {
-		std::cerr << "Mouse1 ";
+		fprintf(stderr, "Mouse1 ");
 	}
 	if (mouse_mask & (int)MouseButton::Mouse2) {
-		std::cerr << "Mouse2 ";
+		fprintf(stderr, "Mouse2 ");
 	}
 	if (mouse_mask & (int)MouseButton::Mouse3) {
-		std::cerr << "Mouse3 ";
+		fprintf(stderr, "Mouse3 ");
 	}
-	std::cerr << std::endl;
+	fprintf(stderr, "\n");
 }
 
 void print_modifiers(int mod_mask) {
-	std::cerr << mod_mask << " ";
+	dbg_print("");
+	fprintf(stderr, "%d ", mod_mask);
 	if (mod_mask & (int)Modifier::Ctrl) {
-		std::cerr << "Ctrl ";
+		fprintf(stderr, "Ctrl ");
 	}
 	if (mod_mask & (int)Modifier::Shift) {
-		std::cerr << "Shift ";
+		fprintf(stderr, "Shift ");
 	}
 	if (mod_mask & (int)Modifier::Alt) {
-		std::cerr << "Alt ";
+		fprintf(stderr, "Alt ");
 	}
 	if (mod_mask & (int)Modifier::Super) {
-		std::cerr << "Super ";
+		fprintf(stderr, "Super ");
 	}
-	std::cerr << std::endl;
+	fprintf(stderr, "\n");
 }
 
 // FIXME: This call should be synchronous, so just handle things in the
 // associated handler
 void InputHandler::resolve() {
 	DEBUG_ONLY(
-	std::cerr << "Resolving events" << std::endl;
+	dbg_println("Resolving events");
 	print_mouse_buttons(this->mouse_button_mask);
 	print_modifiers(this->mod_mask);
 	);
