@@ -35,7 +35,7 @@
 #define DEBUG_NAMESPACE "main"
 #include "debug.hh"
 #include "buffer.hh"
-#include "input_handler.hh"
+#include "input_handling.hh"
 #include "resources/shaders/opengl/text.vert.hh"
 #include "resources/shaders/opengl/text.frag.hh"
 #include "resources/shaders/opengl/point.vert.hh"
@@ -48,7 +48,7 @@ using namespace err;
 using namespace defer;
 using namespace window;
 using namespace buffer;
-using namespace input_handler;
+using namespace input_handling;
 using namespace graphics::primitives;
 using namespace graphics::fonts;
 using namespace graphics::opengl::drawing;
@@ -63,7 +63,7 @@ static const Config conf(
 	RGBColor(0, 0, 0),
 	RGBColor(255, 255, 234),
 	2,
-	18
+	20
 );
 
 DEBUG_ONLY(
@@ -253,24 +253,26 @@ Result<Unit> run(int argc, char* argv[]) {
 		conf.bg
 	};
 
-	InputHandler::glfw_register_callbacks(window.handle);
-	InputHandler handler{
-		buffer,
-		draw_info,
-		{},
-		{},
-		{},
-		{},
-		{},
-		{},
-	};
-	handler.make_active();
+	PersistentState state{};
+
+	glfw_register_callbacks(window.handle);
 
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwWaitEvents();
-		dbg_printval((int)conf.bg.red);
-		dbg_printval((int)conf.fg.red);
+		while (!event_queue.empty()) {
+			dbg_println("Event queue");
+			auto needs_redraw = handle_event(
+				event_queue_pop(),
+				buffer,
+				draw_info,
+				state
+			);
+			dbg_printval(needs_redraw);
+			draw_info.needs_redraw = draw_info.needs_redraw | needs_redraw;
+		}
+	
 		if (draw_info.needs_redraw) {
+			dbg_println("Needs redraw");
 			draw_info.draw(buffer);
 			draw_info.needs_redraw = false;
 		}

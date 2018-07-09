@@ -3,13 +3,13 @@
 namespace common_state {
 
 struct ScrollState {
-	double off_x;
-	double off_y;
+	double x_off;
+	double y_off;
 };
 
 struct CursorPosState {
-	double pos_x;
-	double pos_y;
+	double x_pos;
+	double y_pos;
 };
 
 

@@ -112,8 +112,8 @@ void BufferDrawInfo::scroll(ScrollState offsets) {
 	this->always.uni.world = glm::translate(
 		this->always.uni.world,
 		{
-			offsets.off_x * this->tab_size * this->space_width,
-			offsets.off_y * this->line_height * 4,
+			offsets.x_off * this->tab_size * this->space_width,
+			offsets.y_off * this->line_height * 4,
 			0.f
 		}
 	);
@@ -124,8 +124,8 @@ void BufferDrawInfo::scroll_drag(ScrollState offsets) {
 	this->always.uni.world = glm::translate(
 		this->always.uni.world,
 		{
-			offsets.off_x,
-			offsets.off_y,
+			offsets.x_off,
+			offsets.y_off,
 			0.f
 		}
 	);
@@ -137,8 +137,8 @@ PointOffset BufferDrawInfo::get_mouse_target(Buffer const& buffer, CursorPosStat
 		return { 0 };
 	}
 
-	auto x = state.pos_x;
-	auto y = state.pos_y;
+	auto x = state.x_pos;
+	auto y = state.y_pos;
 	glm::vec4 orig{x, y, 0.f, 1.f};
 	auto world_inv_tr = glm::transpose(glm::inverse(
 		this->always.uni.world
