@@ -60,8 +60,8 @@ using namespace graphics::opengl::buffer_draw_info;
 
 static const Config conf(
 	{"Iosevka Term Medium"},
-	RGBColor(255, 255, 255),
-	RGBColor(30, 30, 30),
+	RGBColor(0, 0, 0),
+	RGBColor(255, 255, 234),
 	2,
 	18
 );
@@ -173,7 +173,8 @@ Result<Unit> run(int argc, char* argv[]) {
 		md.read((char*)(&char_map_data.md), sizeof(CharMapData::Metadata));
 	}
 
-	Window window(800, 600, "cae");
+	std::string window_name{"cae - " + buffer.path.string()};
+	Window window(800, 600, window_name.c_str());
 
 	DEBUG_ONLY(
 	glEnable(GL_DEBUG_OUTPUT);
@@ -221,14 +222,21 @@ Result<Unit> run(int argc, char* argv[]) {
 		GL_TEXTURE1
 	);
 
+	VecUniform<GLuint, 3> text_fg = {{conf.fg.red, conf.fg.green, conf.fg.blue}, "text_fg"};
+	VecUniform<GLuint, 3> text_bg = {{conf.bg.red, conf.bg.green, conf.bg.blue}, "text_bg"};
+
 	UniformGroup<
-	 GlobalDrawingUniforms&,
-	 TextureUniform&,
-	 BufferTextureUniform&
+		GlobalDrawingUniforms&,
+		TextureUniform&,
+		BufferTextureUniform&,
+		VecUniform<GLuint, 3>&,
+		VecUniform<GLuint, 3>&
 	> always = {
 		globals,
 		font_map,
 		char_to_uv_locations,
+		text_fg,
+		text_bg
 	};
 
 	BufferDrawInfo draw_info{
@@ -242,6 +250,7 @@ Result<Unit> run(int argc, char* argv[]) {
 		conf.tab_size,
 		char_map_data.md.line_height,
 		true,
+		conf.bg
 	};
 
 	InputHandler::glfw_register_callbacks(window.handle);
@@ -259,6 +268,8 @@ Result<Unit> run(int argc, char* argv[]) {
 
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwWaitEvents();
+		dbg_printval((int)conf.bg.red);
+		dbg_printval((int)conf.fg.red);
 		if (draw_info.needs_redraw) {
 			draw_info.draw(buffer);
 			draw_info.needs_redraw = false;

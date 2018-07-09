@@ -2,6 +2,7 @@
 
 #include <tuple>
 #include <vector>
+#include <array>
 #include <glm/glm.hpp>
 #include <string>
 #include <functional>
@@ -80,6 +81,14 @@ struct SimpleUniform {
 	void activate(GLuint program) const {
 		(*this->fn)(glGetUniformLocation(program, this->name.c_str()), this->item);
 	}
+};
+
+template <typename GlType, size_t Size>
+struct VecUniform {
+	std::array<GlType, Size> data;
+	std::string name;
+
+	void activate(GLuint program) const;
 };
 
 template <typename HUniform, typename... RUniforms>

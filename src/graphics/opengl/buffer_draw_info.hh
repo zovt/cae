@@ -7,6 +7,7 @@
 #include "../window.hh"
 #include "../../buffer.hh"
 #include "../../common_state.hh"
+#include "../../color.hh"
 #include "index.hh"
 #include "drawing.hh"
 #include "shaders.hh"
@@ -22,7 +23,9 @@ struct BufferDrawInfo {
 	uniforms::UniformGroup<
 		uniforms::GlobalDrawingUniforms&,
 		uniforms::TextureUniform&,
-		uniforms::BufferTextureUniform&
+		uniforms::BufferTextureUniform&,
+		uniforms::VecUniform<GLuint, 3>&,
+		uniforms::VecUniform<GLuint, 3>&
 	>& always;
 	window::Window& window;
 	std::vector<fonts::Metrics> const& char_to_metrics;
@@ -30,6 +33,7 @@ struct BufferDrawInfo {
 	int tab_size;
 	int line_height;
 	bool needs_redraw;
+	color::RGBColor bg_clear_color;
 
 	void draw(buffer::Buffer const& buffer) const;
 	void scroll(common_state::ScrollState offsets);

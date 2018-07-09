@@ -27,8 +27,7 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 	auto point_pos_x = 0;
 	auto point_pos_y = 0;
 
-	// FIXME: Make this configurable
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(bg_clear_color.red / 255.f, bg_clear_color.green / 255.f, bg_clear_color.blue / 255.f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	this->text_shdr.activate();

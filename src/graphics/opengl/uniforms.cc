@@ -56,3 +56,17 @@ void BufferTextureUniformGroup::activate(GLuint program) const {
 		glBindTexture(GL_TEXTURE_BUFFER, texture.texture.texture.id);
 	}
 }
+
+#define VEC_UNIFORM_IMPL(GlType, Size, glUniformv)\
+template<>\
+void VecUniform<GlType, Size>::activate(GLuint program) const {\
+	glUniformv(\
+		glGetUniformLocation(program, name.c_str()),\
+		1,\
+		data.data()\
+	);\
+}
+
+VEC_UNIFORM_IMPL(GLuint, 3, glUniform3uiv)
+
+
