@@ -75,7 +75,7 @@ Buffer buffer::slurp_to_buffer(std::filesystem::path path) {
 Buffer::Buffer()
 : contents{}, path{}, point{}, current_change{unit} {}
 
-void Buffer::set_point(PointOffset pos) {
+void Buffer::set_point(Point pos) {
 	point = pos;
 
 	if (!std::holds_alternative<Unit>(current_change.element)) {
@@ -85,15 +85,14 @@ void Buffer::set_point(PointOffset pos) {
 }
 
 void Buffer::backspace() {
-	dbg_printval(point.index);
-	if (point.index == 0) {
+	if (point.point == 0) {
 		return;
 	}
 
 	redo_chain.clear();
-	auto chr = contents[point.index - 1];
-	contents.erase(contents.begin() + point.index - 1);
-	--point.index;
+	auto chr = contents[point.point - 1];
+	contents.erase(contents.begin() + point.point - 1);
+	--point.point;
 
 	if (std::holds_alternative<Deletion>(current_change.element)) {
 		dbg_println("Backspace has deletion");
@@ -106,14 +105,14 @@ void Buffer::backspace() {
 			undo_chain.push_back(current_change.inverse());
 		}
 		dbg_println("New Deletion");
-		current_change.element = Deletion{{chr}, point.index, point.index + 1};
+		current_change.element = Deletion{{chr}, point.point, point.point + 1};
 	}
 }
 
 void Buffer::insert(uint8_t chr) {
 	redo_chain.clear();
-	contents.insert(contents.begin() + point.index, chr);
-	++point.index;
+	contents.insert(contents.begin() + point.point, chr);
+	++point.point;
 
 	if (std::holds_alternative<Addition>(current_change.element)) {
 		dbg_println("Insert has addition");
@@ -127,14 +126,14 @@ void Buffer::insert(uint8_t chr) {
 			undo_chain.push_back(current_change.inverse());
 		}
 		dbg_println("New addition");
-		current_change.element = Addition{{chr}, point.index - 1, point.index};
+		current_change.element = Addition{{chr}, point.point - 1, point.point};
 	}
 }
 
 void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 	redo_chain.clear();
-	contents.insert(contents.begin() + point.index, chrs.begin(), chrs.end());
-	point.index += chrs.size();
+	contents.insert(contents.begin() + point.point, chrs.begin(), chrs.end());
+	point.point += chrs.size();
 
 	if (std::holds_alternative<Addition>(current_change.element)) {
 		auto& addition = std::get<Addition>(current_change.element);
@@ -144,7 +143,7 @@ void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 		if (!std::holds_alternative<Unit>(current_change.element)) {
 			undo_chain.push_back(current_change.inverse());
 		}
-		current_change.element = Addition{{chrs.begin(), chrs.end()}, point.index - chrs.size(), point.index};
+		current_change.element = Addition{{chrs.begin(), chrs.end()}, point.point - chrs.size(), point.point};
 	}
 }
 
@@ -166,7 +165,7 @@ void Buffer::undo() {
 	redo_chain.push_back(change.inverse());
 	change.apply(contents);
 
-	point.index = std::min(point.index, contents.size());
+	point.point = std::min(point.point, contents.size());
 }
 
 void Buffer::redo() {
@@ -181,7 +180,7 @@ void Buffer::redo() {
 	undo_chain.push_back(change.inverse());
 	change.apply(contents);
 
-	point.index = std::min(point.index, contents.size());
+	point.point = std::min(point.point, contents.size());
 }
 
 void Buffer::save() {

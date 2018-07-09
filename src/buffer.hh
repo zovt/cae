@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <variant>
 #include <gsl/span>
 
@@ -11,8 +12,9 @@
 
 namespace buffer {
 
-struct PointOffset {
-	size_t index;
+struct Point {
+	size_t point;
+	size_t mark;
 };
 
 struct Addition {
@@ -40,14 +42,14 @@ struct Buffer {
 	std::vector<uint8_t> contents;
 	std::filesystem::path path;
 
-	// characters are inserted AT this index
-	PointOffset point;
+	// characters are inserted AT this index start
+	Point point;
 
 	Diff current_change;
 	std::vector<Diff> undo_chain;
 	std::vector<Diff> redo_chain;
 
-	void set_point(PointOffset pos);
+	void set_point(Point pos);
 	void backspace();
 	void insert(uint8_t chr);
 	void insert_all(gsl::span<uint8_t const> chrs);

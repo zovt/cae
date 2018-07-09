@@ -1,6 +1,7 @@
 #include "buffer_draw_info.hh"
 
 #include <iostream>
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -27,6 +28,10 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 	auto point_pos_x = 0;
 	auto point_pos_y = 0;
 
+	auto selection_min = std::min(buffer.point.point, buffer.point.mark);
+	auto selection_max = std::max(buffer.point.point, buffer.point.mark);
+	auto& bg_uni = always.rest.rest.rest.rest.uni;
+
 	glClearColor(bg_clear_color.red / 255.f, bg_clear_color.green / 255.f, bg_clear_color.blue / 255.f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -35,10 +40,19 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 	this->tex_pixel.vao.activate();
 	for (size_t i = 0; i < buffer.contents.size(); i++) {
 		auto chr = buffer.contents[i];
-		if (i == buffer.point.index) {
+		if (i == buffer.point.point) {
 			point_pos_x = cursor_x;
 			point_pos_y = cursor_y;
 		}
+
+		if (i == selection_min) {
+			selection_color.activate(text_shdr.program);
+		}
+
+		if (i == selection_max) {
+			bg_uni.activate(text_shdr.program);
+		}
+			
 
 		if (chr == ' ') {
 			cursor_x += this->space_width;
@@ -78,7 +92,7 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 
 		cursor_x += metrics.advance;
 	}
-	if (buffer.point.index == buffer.contents.size()) {
+	if (buffer.point.point == buffer.contents.size()) {
 		point_pos_x = cursor_x;
 		point_pos_y = cursor_y;
 	}
@@ -132,9 +146,9 @@ void BufferDrawInfo::scroll_drag(ScrollState offsets) {
 	this->needs_redraw = true;
 }
 
-PointOffset BufferDrawInfo::get_mouse_target(Buffer const& buffer, CursorPosState state) {
+size_t BufferDrawInfo::get_mouse_target(Buffer const& buffer, CursorPosState state) {
 	if (buffer.contents.size() == 0) {
-		return { 0 };
+		return 0;
 	}
 
 	auto x = state.x_pos;
@@ -177,5 +191,5 @@ PointOffset BufferDrawInfo::get_mouse_target(Buffer const& buffer, CursorPosStat
 		--point_offset;
 	}
 	this->needs_redraw = true;
-	return {point_offset};
+	return point_offset;
 }

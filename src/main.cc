@@ -224,6 +224,8 @@ Result<Unit> run(int argc, char* argv[]) {
 
 	VecUniform<GLuint, 3> text_fg = {{conf.fg.red, conf.fg.green, conf.fg.blue}, "text_fg"};
 	VecUniform<GLuint, 3> text_bg = {{conf.bg.red, conf.bg.green, conf.bg.blue}, "text_bg"};
+	// FIXME: Make this a config option
+	VecUniform<GLuint, 3> selection_color = {{202, 255, 255}, "text_bg"};
 
 	UniformGroup<
 		GlobalDrawingUniforms&,
@@ -250,7 +252,8 @@ Result<Unit> run(int argc, char* argv[]) {
 		conf.tab_size,
 		char_map_data.md.line_height,
 		true,
-		conf.bg
+		conf.bg,
+		selection_color
 	};
 
 	PersistentState state{};

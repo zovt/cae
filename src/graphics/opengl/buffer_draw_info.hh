@@ -34,12 +34,13 @@ struct BufferDrawInfo {
 	int line_height;
 	bool needs_redraw;
 	color::RGBColor bg_clear_color;
+	uniforms::VecUniform<GLuint, 3>& selection_color;
 
 	void draw(buffer::Buffer const& buffer) const;
 	void scroll(common_state::ScrollState offsets);
 	void scroll_drag(common_state::ScrollState offsets);
 	void resize_window(int width, int height);
-	buffer::PointOffset get_mouse_target(buffer::Buffer const& buffer, common_state::CursorPosState state);
+	size_t get_mouse_target(buffer::Buffer const& buffer, common_state::CursorPosState state);
 };
 
 } } }

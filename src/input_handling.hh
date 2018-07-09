@@ -74,7 +74,6 @@ struct Event {
 // state that needs to be held cross-frame
 struct PersistentState {
 	// TODO: Do these need to persist?
-	int mod_mask;
 	int mouse_mask;
 
 	common_state::CursorPosState last_cursor_pos;

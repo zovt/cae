@@ -120,6 +120,13 @@ void input_handling::handle_mouse_event(
 ) {
 	if (std::holds_alternative<MouseButtonEvent>(event.event)) {
 		auto button_event = std::get<MouseButtonEvent>(event.event);
+
+		dbg_printval(state.mouse_mask);
+		switch (button_event.state) {
+			case UpDownState::Down: state.mouse_mask = state.mouse_mask | (int)button_event.button; break;
+			case UpDownState::Up: state.mouse_mask = state.mouse_mask & ~(int)button_event.button; break;
+		}
+		dbg_printval(state.mouse_mask);
 		switch (button_event.button) {
 			case MouseButton::Mouse1: {
 				if (button_event.state == UpDownState::Down) {
@@ -128,7 +135,7 @@ void input_handling::handle_mouse_event(
 						return;
 					}
 					auto point_pos = draw_info.get_mouse_target(buffer, state.last_cursor_pos);
-					buffer.set_point(point_pos);
+					buffer.set_point({point_pos, point_pos});
 					return;
 				} else {
 					state.dragging = false;
@@ -147,6 +154,10 @@ void input_handling::handle_mouse_event(
 				pos_event.x_pos - state.last_cursor_pos.x_pos,
 				pos_event.y_pos - state.last_cursor_pos.y_pos
 			});
+		} else if (state.mouse_mask & (int)MouseButton::Mouse1) {
+			auto point_pos = draw_info.get_mouse_target(buffer, {pos_event.x_pos, pos_event.y_pos});
+			dbg_printval(point_pos);
+			buffer.set_point({point_pos, buffer.point.mark});
 		}
 		state.last_cursor_pos.x_pos = pos_event.x_pos;
 		state.last_cursor_pos.y_pos = pos_event.y_pos;
