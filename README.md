@@ -4,6 +4,10 @@ cae is an experimental, mouse-based, integrating programming environment.
 The rendering is done via OpenGL currently. The use of multiple graphics backends
 is a consideration, but nothing has been implemented yet.
 
+# Self-dogfooding
+As of Mon, 9 Jul 2018, the primary author of cae (@zovt) is using it as his primary
+text editor
+
 # Goals
 1. cae should integrate with the surrounding system as best as possible
 2. cae should be fast
