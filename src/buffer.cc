@@ -131,6 +131,23 @@ void Buffer::insert(uint8_t chr) {
 	}
 }
 
+void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
+	redo_chain.clear();
+	contents.insert(contents.begin() + point.index, chrs.begin(), chrs.end());
+	point.index += chrs.size();
+
+	if (std::holds_alternative<Addition>(current_change.element)) {
+		auto& addition = std::get<Addition>(current_change.element);
+		addition.contents.insert(addition.contents.end(), chrs.begin(), chrs.end());
+		addition.end += chrs.size();
+	} else {
+		if (!std::holds_alternative<Unit>(current_change.element)) {
+			undo_chain.push_back(current_change.inverse());
+		}
+		current_change.element = Addition{{chrs.begin(), chrs.end()}, point.index - chrs.size(), point.index};
+	}
+}
+
 void Buffer::undo() {
 	dbg_println("Undo");
 	if (!std::holds_alternative<Unit>(current_change.element)) {

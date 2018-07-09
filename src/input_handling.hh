@@ -95,7 +95,8 @@ bool handle_char_event(
 
 bool handle_key_event(
 	KeyEvent event,
-	buffer::Buffer& buffer
+	buffer::Buffer& buffer,
+	GLFWwindow* window
 );
 
 void handle_window_event(

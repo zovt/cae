@@ -163,7 +163,8 @@ bool input_handling::handle_char_event(
 
 bool input_handling::handle_key_event(
 	KeyEvent event,
-	buffer::Buffer& buffer
+	buffer::Buffer& buffer,
+	GLFWwindow* window
 ) {
 	if (event.state == UpDownState::Up) {
 		return false;
@@ -196,6 +197,13 @@ bool input_handling::handle_key_event(
 				buffer.save();
 			}
 			return false;
+		case GLFW_KEY_V:
+			if (event.mods & (int)Modifier::Ctrl) {
+				auto clipboard_str = glfwGetClipboardString(window);
+				buffer.insert_all(gsl::span{(const uint8_t*)clipboard_str, strlen(clipboard_str)});
+				return true;
+			}
+			return false;
 	}
 	return false;
 }
@@ -226,7 +234,7 @@ bool input_handling::handle_event(
 		return handle_char_event(char_event, buffer);
 	} else if (std::holds_alternative<KeyEvent>(event.event)) {
 		auto key_event = std::get<KeyEvent>(event.event);
-		return handle_key_event(key_event, buffer);
+		return handle_key_event(key_event, buffer, draw_info.window.handle);
 	} else if (std::holds_alternative<WindowEvent>(event.event)) {
 		auto window_event = std::get<WindowEvent>(event.event);
 		handle_window_event(window_event, draw_info);

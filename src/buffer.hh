@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <functional>
 #include <variant>
+#include <gsl/span>
 
 #include "common_state.hh"
 #include "unit.hh"
@@ -49,6 +50,7 @@ struct Buffer {
 	void set_point(PointOffset pos);
 	void backspace();
 	void insert(uint8_t chr);
+	void insert_all(gsl::span<uint8_t const> chrs);
 	void undo();
 	void redo();
 	void save();
