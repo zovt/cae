@@ -51,6 +51,7 @@ struct Buffer {
 	void insert(uint8_t chr);
 	void undo();
 	void redo();
+	void save();
 };
 
 Buffer slurp_to_buffer(std::filesystem::path path);

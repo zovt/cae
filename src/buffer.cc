@@ -73,7 +73,7 @@ Buffer buffer::slurp_to_buffer(std::filesystem::path path) {
 }
 
 Buffer::Buffer()
-: contents{}, path{}, point{} {}
+: contents{}, path{}, point{}, current_change{unit} {}
 
 void Buffer::set_point(PointOffset pos) {
 	point = pos;
@@ -165,4 +165,10 @@ void Buffer::redo() {
 	change.apply(contents);
 
 	point.index = std::min(point.index, contents.size());
+}
+
+void Buffer::save() {
+	dbg_println("Save");
+	std::ofstream out(path.native(), std::ios::out | std::ios::binary);
+	out.write((const char*)contents.data(), contents.size());
 }

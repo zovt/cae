@@ -141,6 +141,11 @@ void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
 				this->buffer_draw_info.needs_redraw = true;
 			}
 			break;
+		case GLFW_KEY_S:
+			if (mod_mask & (int)Modifier::Ctrl) {
+				buffer.save();
+			}
+			break;
 	}
 }
 

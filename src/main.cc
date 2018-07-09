@@ -88,14 +88,26 @@ void GLAPIENTRY message_cb(
 }
 )
 
+Result<Buffer> get_buffer_from_args(int argc, char* argv[]) {
+	using namespace std::literals;
+	if (argc < 2) {
+		return "Missing file name argument";
+	}
+
+	std::filesystem::path path{argv[1]};
+	if (std::filesystem::exists(path)) {
+		return slurp_to_buffer(path);
+	}
+
+	Buffer buf{};
+	buf.path = path;
+	return buf;
+}
+
 Result<Unit> run(int argc, char* argv[]) {
 	using namespace std::literals;
 	try(auto font_path, get_closest_font_match(conf.fonts));
-
-	if (argc < 2) {
-		return "Missing file argument";
-	}
-	auto buffer = slurp_to_buffer(std::filesystem::path(argv[1]));
+	try(auto buffer, get_buffer_from_args(argc, argv));
 
 	auto path_hash = std::hash<std::string>{}(font_path);
 	auto size_hash = std::hash<int>{}(conf.font_size);
