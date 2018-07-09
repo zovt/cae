@@ -32,3 +32,6 @@ build/cae: $(obj)
 
 clean:
 	rm -r build
+
+install: cae
+	sudo cp build/cae /usr/local/bin/cae

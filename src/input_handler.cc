@@ -76,6 +76,12 @@ void window_pos_cb(GLFWwindow* window, int xpos, int ypos) {
 	active_input_handler->buffer_draw_info.needs_redraw = true;
 }
 
+void window_fb_sz_cb(GLFWwindow* window, int width, int height) {
+	(void)window;
+
+	active_input_handler->handle_window_change(width, height);
+}
+
 void InputHandler::glfw_register_callbacks(GLFWwindow* window) {
 	glfwSetScrollCallback(window, mouse_scroll_cb);
 	glfwSetCharModsCallback(window, char_cb);
@@ -83,6 +89,7 @@ void InputHandler::glfw_register_callbacks(GLFWwindow* window) {
 	glfwSetCursorPosCallback(window, cursor_pos_cb);
 	glfwSetMouseButtonCallback(window, mouse_button_cb);
 	glfwSetWindowPosCallback(window, window_pos_cb);
+	glfwSetFramebufferSizeCallback(window, window_fb_sz_cb);
 }
 
 void InputHandler::make_active() {
@@ -111,9 +118,8 @@ void InputHandler::handle_mouse_scroll(double off_x, double off_y) {
 }
 
 void InputHandler::handle_window_change(int width, int height) {
-	this->window_change_st.width = width;
-	this->window_change_st.height = height;
-	this->resolve();
+	dbg_printval("handle_window_change");
+	buffer_draw_info.resize_window(width, height);
 }
 
 void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
@@ -128,6 +134,10 @@ void InputHandler::handle_key(int key, UpDownState state, int mod_mask) {
 		case GLFW_KEY_ENTER:
 			this->buffer.insert('\n');
 			this->buffer_draw_info.needs_redraw = true;
+			break;
+		case GLFW_KEY_TAB:
+			buffer.insert('\t');
+			buffer_draw_info.needs_redraw = true;
 			break;
 		case GLFW_KEY_Z:
 			if (mod_mask & (int)Modifier::Ctrl) {
@@ -208,11 +218,6 @@ void InputHandler::resolve() {
 		);
 		this->buffer_draw_info.scroll(this->scroll_st);
 		this->scroll_st = {};
-	}
-
-	if (this->window_change_st.width > 0) {
-		this->buffer_draw_info.resize_window(this->window_change_st.width, this->window_change_st.height);
-		this->window_change_st = {};
 	}
 
 	auto before = this->cursor_pos_st_old;

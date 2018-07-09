@@ -98,8 +98,13 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 }
 
 void BufferDrawInfo::resize_window(int width, int height) {
+	dbg_println("_____________");
+	dbg_println("resize_window");
 	this->window.width = width;
 	this->window.height = height;
+	dbg_printval(width);
+	dbg_printval(height);
+	glViewport(0, 0, width, height);
 	this->always.uni.regen_proj(width, height);
 	this->needs_redraw = true;
 }
