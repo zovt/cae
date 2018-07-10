@@ -93,6 +93,7 @@ void Buffer::backspace() {
 	auto chr = contents[point.point - 1];
 	contents.erase(contents.begin() + point.point - 1);
 	--point.point;
+	--point.mark;
 
 	if (std::holds_alternative<Deletion>(current_change.element)) {
 		dbg_println("Backspace has deletion");
@@ -113,6 +114,7 @@ void Buffer::insert(uint8_t chr) {
 	redo_chain.clear();
 	contents.insert(contents.begin() + point.point, chr);
 	++point.point;
+	++point.mark;
 
 	if (std::holds_alternative<Addition>(current_change.element)) {
 		dbg_println("Insert has addition");
