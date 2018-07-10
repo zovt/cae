@@ -90,11 +90,15 @@ void Buffer::backspace() {
 	}
 
 	redo_chain.clear();
-	auto chr = contents[point.point - 1];
-	contents.erase(contents.begin() + point.point - 1);
-	--point.point;
-	--point.mark;
+	auto selection_min = std::min(point.point - 1, point.mark);
+	auto selection_max = std::max(point.point - 1, point.mark);
+	if (point.point == point.mark) {
+		selection_max = point.point - 1;
+	}
+	contents.erase(contents.begin() + selection_min, contents.begin() + selection_max + 1);
 
+	point = {selection_min, selection_min};
+	/*
 	if (std::holds_alternative<Deletion>(current_change.element)) {
 		dbg_println("Backspace has deletion");
 		auto& deletion = std::get<Deletion>(current_change.element);
@@ -107,15 +111,19 @@ void Buffer::backspace() {
 		}
 		dbg_println("New Deletion");
 		current_change.element = Deletion{{chr}, point.point, point.point + 1};
-	}
+	}*/
 }
 
 void Buffer::insert(uint8_t chr) {
 	redo_chain.clear();
+	if (point.point != point.mark) {
+		backspace();
+	}
 	contents.insert(contents.begin() + point.point, chr);
 	++point.point;
 	++point.mark;
 
+	/*
 	if (std::holds_alternative<Addition>(current_change.element)) {
 		dbg_println("Insert has addition");
 		auto& addition = std::get<Addition>(current_change.element);
@@ -130,13 +138,19 @@ void Buffer::insert(uint8_t chr) {
 		dbg_println("New addition");
 		current_change.element = Addition{{chr}, point.point - 1, point.point};
 	}
+	*/
 }
 
 void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 	redo_chain.clear();
+	if (point.point != point.mark) {
+		backspace();
+	}
 	contents.insert(contents.begin() + point.point, chrs.begin(), chrs.end());
 	point.point += chrs.size();
+	point.mark += chrs.size();
 
+	/*
 	if (std::holds_alternative<Addition>(current_change.element)) {
 		auto& addition = std::get<Addition>(current_change.element);
 		addition.contents.insert(addition.contents.end(), chrs.begin(), chrs.end());
@@ -147,6 +161,7 @@ void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 		}
 		current_change.element = Addition{{chrs.begin(), chrs.end()}, point.point - chrs.size(), point.point};
 	}
+	*/
 }
 
 void Buffer::undo() {
