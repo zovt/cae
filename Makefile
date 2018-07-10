@@ -33,7 +33,7 @@ build/cae: $(obj)
 clean:
 	rm -r build
 
-build/cae.1.gz:
+build/cae.1.gz: docs/cae.1
 	gzip -c docs/cae.1 > build/cae.1.gz
 
 man: build/cae.1.gz
