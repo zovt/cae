@@ -112,11 +112,12 @@ void input_handling::glfw_register_callbacks(GLFWwindow* window) {
 	glfwSetFramebufferSizeCallback(window, window_fb_sz_cb);
 }
 
-void input_handling::handle_mouse_event(
+bool input_handling::handle_mouse_event(
 	MouseEvent event,
 	buffer::Buffer& buffer,
 	BufferDrawInfo& draw_info,
-	PersistentState& state
+	PersistentState& state,
+	GLFWwindow* window
 ) {
 	if (std::holds_alternative<MouseButtonEvent>(event.event)) {
 		auto button_event = std::get<MouseButtonEvent>(event.event);
@@ -132,20 +133,45 @@ void input_handling::handle_mouse_event(
 				if (button_event.state == UpDownState::Down) {
 					if (button_event.mods & (int)Modifier::Ctrl) {
 						state.dragging = true;
-						return;
+						return false;
 					}
 					auto point_pos = draw_info.get_mouse_target(buffer, state.last_cursor_pos);
 					buffer.set_point({point_pos, point_pos});
-					return;
+					return true;
 				} else {
 					state.dragging = false;
-					return;
+					return false;
 				}
+			break;
+			}
+			case MouseButton::Mouse2: {
+				if (button_event.state == UpDownState::Down) {
+					if (state.mouse_mask & (int)MouseButton::Mouse1) {
+						auto clipboard_str = glfwGetClipboardString(window);
+						buffer.insert_all(gsl::span{(const uint8_t*)clipboard_str, strlen(clipboard_str)});
+						return true;
+					}
+				}
+				break;
+			}
+			case MouseButton::Mouse3: {
+				if (button_event.state == UpDownState::Down) {
+					if (state.mouse_mask & (int)MouseButton::Mouse1) {
+						auto contents = buffer.get_selection();
+						std::string content_str{(const char*)contents.data(), contents.size()};
+						glfwSetClipboardString(window, content_str.c_str());
+						buffer.backspace();
+						return true;
+					}
+				}
+				break;
 			}
 		}
+		return false;
 	} else if (std::holds_alternative<MouseScrollEvent>(event.event)) {
 		auto scroll_event = std::get<MouseScrollEvent>(event.event);
 		draw_info.scroll({ scroll_event.x_off, scroll_event.y_off });
+		return true;
 	} else if (std::holds_alternative<MousePositionEvent>(event.event)) {
 		auto pos_event = std::get<MousePositionEvent>(event.event);
 
@@ -154,14 +180,18 @@ void input_handling::handle_mouse_event(
 				pos_event.x_pos - state.last_cursor_pos.x_pos,
 				pos_event.y_pos - state.last_cursor_pos.y_pos
 			});
+			return true;
 		} else if (state.mouse_mask & (int)MouseButton::Mouse1) {
 			auto point_pos = draw_info.get_mouse_target(buffer, {pos_event.x_pos, pos_event.y_pos});
 			dbg_printval(point_pos);
 			buffer.set_point({point_pos, buffer.point.mark});
+			return true;
 		}
 		state.last_cursor_pos.x_pos = pos_event.x_pos;
 		state.last_cursor_pos.y_pos = pos_event.y_pos;
+		return false;
 	}
+	return false;
 }
 
 bool input_handling::handle_char_event(
@@ -254,8 +284,7 @@ bool input_handling::handle_event(
 	PersistentState& state
 ) {
 	if (std::holds_alternative<MouseEvent>(event.event)) {
-		handle_mouse_event(std::get<MouseEvent>(event.event), buffer, draw_info, state);
-		return false;
+		return handle_mouse_event(std::get<MouseEvent>(event.event), buffer, draw_info, state, draw_info.window.handle);
 	} else if (std::holds_alternative<CharEvent>(event.event)) {
 		auto char_event = std::get<CharEvent>(event.event);
 		return handle_char_event(char_event, buffer);

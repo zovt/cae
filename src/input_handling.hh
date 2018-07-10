@@ -80,11 +80,12 @@ struct PersistentState {
 	bool dragging;
 };
 
-void handle_mouse_event(
+bool handle_mouse_event(
 	MouseEvent event,
 	buffer::Buffer& buffer,
 	graphics::opengl::buffer_draw_info::BufferDrawInfo& draw_info,
-	PersistentState& state
+	PersistentState& state,
+	GLFWwindow* window
 );
 
 bool handle_char_event(
