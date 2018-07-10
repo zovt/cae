@@ -59,7 +59,7 @@ void main() {
 	vec3 text_bg_fixed = adj_rgb(text_bg);
 
 	out_color = vec4(
-		lerp(text_bg_fixed, text_fg_fixed, glyph_brightness),
-		1.0
+		text_fg_fixed,
+		glyph_brightness
 	);
 }

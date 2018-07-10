@@ -15,7 +15,7 @@ GlobalDrawingUniforms::GlobalDrawingUniforms(float window_w, float window_h, std
 {}
 
 void GlobalDrawingUniforms::regen_proj(float window_w, float window_h) {
-	this->proj = glm::ortho(0.0f, window_w, window_h, 0.0f, -1.0f, 1.0f);
+	this->proj = glm::ortho(0.0f, window_w, window_h, 0.0f, 1.0f, -1.0f);
 }
 
 void GlobalDrawingUniforms::activate(GLuint program) const {

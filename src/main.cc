@@ -260,6 +260,9 @@ Result<Unit> run(int argc, char* argv[]) {
 
 	glfw_register_callbacks(window.handle);
 
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	while (!glfwWindowShouldClose(window.handle)) {
 		glfwWaitEvents();
 		while (!event_queue.empty()) {

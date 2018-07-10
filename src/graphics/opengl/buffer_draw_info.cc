@@ -5,10 +5,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#undef CAE_DEBUG
-#ifdef CAE_DRAW_DEBUG
-#define CAE_DEBUG
-#endif
 #define DEBUG_NAMESPACE "drawing"
 #include "../../debug.hh"
 
@@ -16,6 +12,43 @@ using namespace graphics::opengl::buffer_draw_info;
 using namespace graphics::opengl::uniforms;
 using namespace buffer;
 using namespace common_state;
+using namespace graphics::fonts;
+
+int get_x_in_line(
+	size_t index,
+	std::vector<uint8_t> const& contents,
+	std::vector<Metrics> const& char_to_metrics,
+	int space_width,
+	int tab_size
+) {
+	int offset = 0;
+	for (size_t i = index; i < contents.size(); i--) {
+		auto chr = contents[i];
+		dbg_printval(chr);
+		if (chr == '\n') {
+			break;
+		}
+		if (chr == '\t') {
+			offset += space_width * tab_size;
+			continue;
+		}
+		if (chr == ' ') {
+			offset += space_width;
+			continue;
+		}
+		offset += char_to_metrics[chr].advance;
+	}
+	return offset;
+}
+
+size_t find_newline_after(size_t index, std::vector<uint8_t> const& contents) {
+	for (; index < contents.size(); ++index) {
+		if (contents[index] == '\n') {
+			return index;
+		}
+	}
+	return index;
+}
 
 void BufferDrawInfo::draw(Buffer const& buffer) const {
 	dbg_println("starting draw text");
@@ -34,10 +67,57 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 
 	glClearColor(bg_clear_color.red / 255.f, bg_clear_color.green / 255.f, bg_clear_color.blue / 255.f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT);
 
-	this->text_shdr.activate();
-	this->always.activate(this->text_shdr.program);
-	this->tex_pixel.vao.activate();
+	int newlines_before = 0;
+	for (size_t i = 0; i < selection_min; i++) {
+		if (buffer.contents[i] == '\n') {
+			++newlines_before;
+		}
+	}
+	int newlines_in = 0;
+	for (size_t i = selection_min; i < selection_max; i++) {
+		if (buffer.contents[i] == '\n') {
+			++newlines_in;
+		}
+	}
+
+	int selection_start_x = get_x_in_line(selection_min - 1, buffer.contents, char_to_metrics, space_width, tab_size);
+	int selection_end_x = get_x_in_line(selection_max - 1, buffer.contents, char_to_metrics, space_width, tab_size);
+	int selection_start_y = newlines_before * line_height_adj + line_height_adj;
+	int selection_end_y = selection_start_y + newlines_in * line_height_adj;
+
+	point_shdr.activate();
+	always.activate(point_shdr.program);
+	VecUniform<GLuint, 3> rect_color = {selection_color.data, "text_fg"};
+	rect_color.activate(point_shdr.program);
+	auto n_lines = newlines_in;
+	auto current_index = selection_min;
+	for (int i = 0; i <= n_lines; i++) {
+		auto rect_start_x = i == 0 ? selection_start_x : 0;
+		auto rect_start_y = selection_start_y + (i * line_height_adj) - line_height_adj;
+		auto rect_end_x = selection_end_x;
+		if (i != n_lines) {
+			rect_end_x = get_x_in_line(find_newline_after(current_index, buffer.contents) - 1, buffer.contents, char_to_metrics, space_width, tab_size);
+		}
+		auto rect_end_y = selection_start_y + i * line_height_adj;
+		auto rect_width = rect_end_x - rect_start_x;
+		auto rect_height = rect_end_y - rect_start_y;
+
+		auto transform = glm::scale(
+			glm::translate(glm::mat4(1.f), {(float)rect_start_x, (float)rect_start_y, -0.2f}),
+			{rect_width, rect_height, 1.f}
+		);
+		TransformUniform transform_uni{transform, "transform"};
+		transform_uni.activate(point_shdr.program);
+		tex_pixel.draw();
+		current_index = 1 + find_newline_after(current_index, buffer.contents);
+	}
+
+
+	text_shdr.activate();
+	always.activate(this->text_shdr.program);
+	tex_pixel.vao.activate();
 	for (size_t i = 0; i < buffer.contents.size(); i++) {
 		auto chr = buffer.contents[i];
 		if (i == buffer.point.point) {
@@ -47,12 +127,15 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 
 		if (i == selection_min) {
 			selection_color.activate(text_shdr.program);
+			selection_start_x = cursor_x;
+			selection_start_y = cursor_y;
 		}
 
 		if (i == selection_max) {
 			bg_uni.activate(text_shdr.program);
+			selection_end_x = cursor_x;
+			selection_end_y = cursor_y;
 		}
-			
 
 		if (chr == ' ') {
 			cursor_x += this->space_width;
@@ -74,11 +157,13 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 		int width = metrics.width;
 		int height = metrics.height;
 
+		#ifdef CAE_DRAW_DEBUG
 		dbg_println("Drawing char '%c'", chr);
 		dbg_printval(x_coord);
 		dbg_printval(y_coord);
 		dbg_printval(width);
 		dbg_printval(height);
+		#endif
 		auto transform = glm::scale(
 			glm::translate(glm::mat4(1.f), {(float)x_coord, (float)y_coord, 0.f}),
 			{width, height, 1.f}
@@ -97,14 +182,14 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 		point_pos_y = cursor_y;
 	}
 
-	this->point_shdr.activate();
+	point_shdr.activate();
+	always.activate(point_shdr.program);
 	auto transform = glm::scale(
-		glm::translate(glm::mat4(1.f), {(float)point_pos_x, (float)point_pos_y - this->line_height, 0.f}),
+		glm::translate(glm::mat4(1.f), {(float)point_pos_x, (float)point_pos_y - line_height, 0.2f}),
 		{2.f, this->line_height, 1.f}
 	);
 	TransformUniform transform_uni{transform, "transform"};
 	transform_uni.activate(this->point_shdr.program);
-	this->always.activate(this->point_shdr.program);
 	this->tex_pixel.draw();
 
 	glfwSwapBuffers(this->window.handle);
