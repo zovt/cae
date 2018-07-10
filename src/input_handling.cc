@@ -215,6 +215,22 @@ bool input_handling::handle_key_event(
 				return true;
 			}
 			return false;
+		case GLFW_KEY_C:
+			if (event.mods & (int)Modifier::Ctrl) {
+				auto contents = buffer.get_selection();
+				std::string content_str{(const char*)contents.data(), contents.size()};
+				glfwSetClipboardString(window, content_str.c_str());
+			}
+			return false;
+		case GLFW_KEY_X:
+			if (event.mods & (int)Modifier::Ctrl) {
+				auto contents = buffer.get_selection();
+				std::string content_str{(const char*)contents.data(), contents.size()};
+				glfwSetClipboardString(window, content_str.c_str());
+				buffer.backspace();
+				return true;
+			}
+			return false;
 	}
 	return false;
 }

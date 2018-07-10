@@ -53,6 +53,7 @@ struct Buffer {
 	void backspace();
 	void insert(uint8_t chr);
 	void insert_all(gsl::span<uint8_t const> chrs);
+	gsl::span<uint8_t> get_selection();
 	void undo();
 	void redo();
 	void save();

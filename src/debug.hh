@@ -7,7 +7,7 @@
 #define DEBUG_NAMESPACE "UNKNOWN"
 #endif
 
-#define DEBUG_ONLY(src) src
+#define DEBUG_ONLY(...) __VA_ARGS__
 
 #define dbg_print(...)\
 fprintf(stderr, "[" DEBUG_NAMESPACE "] " "%s:%d :: ", __FILE__, __LINE__);\
@@ -22,7 +22,7 @@ dbg_print("");\
 std::cerr << #value << ": " << value << std::endl
 
 #else
-#define DEBUG_ONLY(src)
+#define DEBUG_ONLY(...)
 #define dbg_print(...)
 #define dbg_println(...)
 #define dbg_printval(value)

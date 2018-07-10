@@ -164,6 +164,15 @@ void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 	*/
 }
 
+gsl::span<uint8_t> Buffer::get_selection() {
+	auto selection_min = std::min(point.point, point.mark);
+	auto selection_max = std::max(point.point, point.mark);
+	return {
+		contents.data() + selection_min,
+		contents.data() + selection_max
+	};
+}
+
 void Buffer::undo() {
 	dbg_println("Undo");
 	if (!std::holds_alternative<Unit>(current_change.element)) {
