@@ -6,8 +6,10 @@
 
 #define DEBUG_NAMESPACE "buffer"
 #include "debug.hh"
+#include "util.hh"
 
 using namespace buffer;
+using namespace util;
 
 Diff Diff::inverse() const {
 	if (std::holds_alternative<Addition>(element)) {
@@ -90,28 +92,28 @@ void Buffer::backspace() {
 	}
 
 	redo_chain.clear();
-	auto selection_min = std::min(point.point - 1, point.mark);
-	auto selection_max = std::max(point.point - 1, point.mark);
+
+	auto selection_min = std::min(point.point, point.mark);
+	auto selection_max = std::max(point.point, point.mark);
 	if (point.point == point.mark) {
-		selection_max = point.point - 1;
+		selection_min = point.point - 1;
+		selection_max = point.point;
 	}
-	contents.erase(contents.begin() + selection_min, contents.begin() + selection_max + 1);
+	std::vector<uint8_t> chrs{contents.begin() + selection_min, contents.begin() + selection_max};
+	chrs = {chrs.rbegin(), chrs.rend()};
+	contents.erase(contents.begin() + selection_min, contents.begin() + selection_max);
 
 	point = {selection_min, selection_min};
-	/*
-	if (std::holds_alternative<Deletion>(current_change.element)) {
-		dbg_println("Backspace has deletion");
-		auto& deletion = std::get<Deletion>(current_change.element);
-		deletion.contents.push_back(chr);
-		--deletion.start;
+	if (auto deletion_ref = opt_get<Deletion>(current_change.element)) {
+		auto& deletion = deletion_ref->get();
+		deletion.contents.insert(deletion.contents.end(), chrs.begin(), chrs.end());
+		deletion.start = selection_min;
 	} else {
 		if (!std::holds_alternative<Unit>(current_change.element)) {
-			dbg_println("Backspace has unit");
 			undo_chain.push_back(current_change.inverse());
 		}
-		dbg_println("New Deletion");
-		current_change.element = Deletion{{chr}, point.point, point.point + 1};
-	}*/
+		current_change.element = Deletion{chrs, selection_min, selection_max};
+	}
 }
 
 void Buffer::insert(uint8_t chr) {
@@ -123,10 +125,9 @@ void Buffer::insert(uint8_t chr) {
 	++point.point;
 	++point.mark;
 
-	/*
-	if (std::holds_alternative<Addition>(current_change.element)) {
+	if (auto addition_ref = opt_get<Addition>(current_change.element)) {
 		dbg_println("Insert has addition");
-		auto& addition = std::get<Addition>(current_change.element);
+		auto& addition = addition_ref->get();
 		addition.contents.push_back(chr);
 		++addition.end;
 		dbg_printval(addition.end);
@@ -138,7 +139,6 @@ void Buffer::insert(uint8_t chr) {
 		dbg_println("New addition");
 		current_change.element = Addition{{chr}, point.point - 1, point.point};
 	}
-	*/
 }
 
 void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
@@ -150,9 +150,8 @@ void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 	point.point += chrs.size();
 	point.mark += chrs.size();
 
-	/*
-	if (std::holds_alternative<Addition>(current_change.element)) {
-		auto& addition = std::get<Addition>(current_change.element);
+	if (auto addition_ref = opt_get<Addition>(current_change.element)) {
+		auto& addition = addition_ref->get();
 		addition.contents.insert(addition.contents.end(), chrs.begin(), chrs.end());
 		addition.end += chrs.size();
 	} else {
@@ -161,7 +160,6 @@ void Buffer::insert_all(gsl::span<uint8_t const> chrs) {
 		}
 		current_change.element = Addition{{chrs.begin(), chrs.end()}, point.point - chrs.size(), point.point};
 	}
-	*/
 }
 
 gsl::span<uint8_t> Buffer::get_selection() {
