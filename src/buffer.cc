@@ -81,7 +81,7 @@ void Buffer::set_point(Point pos) {
 	point = pos;
 
 	if (!std::holds_alternative<Unit>(current_change.element)) {
-		undo_chain.push_back(current_change);
+		undo_chain.push_back(current_change.inverse());
 	}
 	current_change.element = unit;
 }
