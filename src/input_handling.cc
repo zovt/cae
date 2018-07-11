@@ -142,7 +142,7 @@ bool input_handling::handle_mouse_event(
 					state.dragging = false;
 					return false;
 				}
-			break;
+				break;
 			}
 			case MouseButton::Mouse2: {
 				if (button_event.state == UpDownState::Down) {
@@ -174,22 +174,22 @@ bool input_handling::handle_mouse_event(
 		return true;
 	} else if (std::holds_alternative<MousePositionEvent>(event.event)) {
 		auto pos_event = std::get<MousePositionEvent>(event.event);
-
+		bool needs_redraw = false;
 		if (state.dragging) {
 			draw_info.scroll_drag({
 				pos_event.x_pos - state.last_cursor_pos.x_pos,
 				pos_event.y_pos - state.last_cursor_pos.y_pos
 			});
-			return true;
+			needs_redraw = true;
 		} else if (state.mouse_mask & (int)MouseButton::Mouse1) {
 			auto point_pos = draw_info.get_mouse_target(buffer, {pos_event.x_pos, pos_event.y_pos});
 			dbg_printval(point_pos);
 			buffer.set_point({point_pos, buffer.point.mark});
-			return true;
+			needs_redraw = true;
 		}
 		state.last_cursor_pos.x_pos = pos_event.x_pos;
 		state.last_cursor_pos.y_pos = pos_event.y_pos;
-		return false;
+		return needs_redraw;
 	}
 	return false;
 }
