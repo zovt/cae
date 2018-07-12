@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <cmath>
 #include <cstring>
-#include <freetype2/ft2build.h>
+#include <ft2build.h>
 #include FT_FREETYPE_H
 
 using namespace graphics::fonts;
