@@ -6,7 +6,11 @@ CXXFLAGS := -std=c++17 -g -Wall -Wextra \
 	-fno-exceptions \
 	$(shell pkg-config --cflags fontconfig glfw3 glew glm)
 
-LDFLAGS := ${LDFLAGS} $(shell pkg-config --static --libs fontconfig glew glfw3) -lstdc++fs -framework OpenGL
+LDFLAGS := ${LDFLAGS} $(shell pkg-config --static --libs fontconfig glew glfw3) -lstdc++fs
+UNAME := $(shell uname)
+ifeq ($(UNAME), Darwin)
+	LDFLAGS += -framework OpenGL
+endif
 
 src = $(shell find src/ -name *.cc)
 headers = $(shell find src/ -name *.hh)
