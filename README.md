@@ -17,7 +17,7 @@ text editor
 # Platform Support
 Tier 1: Linux (where cae is primarily developed)
 
-Tier 2: macOs
+Tier 2: macOs (want to test, probably requires minimal changes)
 
 Tier 3: Windows (untested, probably requires significant changes)
 
