@@ -37,9 +37,11 @@ struct Diff {
 };
 
 struct Buffer {
+	using Contents = std::vector<uint8_t>;
+
 	Buffer();
 
-	std::vector<uint8_t> contents;
+	Contents contents;
 	std::filesystem::path path;
 
 	// characters are inserted AT this index start
@@ -57,6 +59,11 @@ struct Buffer {
 	void undo();
 	void redo();
 	void save();
+
+	void point_up();
+	void point_down();
+	void point_left();
+	void point_right();
 };
 
 Buffer slurp_to_buffer(std::filesystem::path path);

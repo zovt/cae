@@ -214,3 +214,43 @@ void Buffer::save() {
 	std::ofstream out(path.native(), std::ios::out | std::ios::binary);
 	out.write((const char*)contents.data(), contents.size());
 }
+
+int find_prev_newline(Buffer::Contents const& contents, int index) {
+	auto start = index;
+	for (; start >= 0; --start) {
+		if (contents[start] == '\n') {
+			return start;
+		}
+	}
+	return -1;
+}
+
+int find_next_newline(Buffer::Contents const& contents, int index) {
+	auto start = index;
+	for (; start < contents.size(); ++start) {
+		if (contents[start] == '\n') {
+			return start;
+		}
+	}
+	return contents.size() - 1;
+}
+	
+void Buffer::point_up() {
+	auto new_point = find_prev_newline(contents, point.point - 2) + 1;
+	set_point({new_point, new_point});
+}
+
+void Buffer::point_down() {
+	auto new_point = find_next_newline(contents, point.point) + 1;
+	set_point({new_point, new_point});
+}
+
+void Buffer::point_left() {
+	auto point_idx = std::max((size_t)1, point.point) - 1;
+	set_point({point_idx, point_idx});
+}
+
+void Buffer::point_right() {
+	auto point_idx = std::min(contents.size(), point.point + 1);
+	set_point({point_idx, point_idx});
+}

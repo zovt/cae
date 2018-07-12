@@ -261,6 +261,18 @@ bool input_handling::handle_key_event(
 				return true;
 			}
 			return false;
+		case GLFW_KEY_UP:
+			buffer.point_up();
+			return true;
+		case GLFW_KEY_LEFT:
+			buffer.point_left();
+			return true;
+		case GLFW_KEY_RIGHT:
+			buffer.point_right();
+			return true;
+		case GLFW_KEY_DOWN:
+			buffer.point_down();
+			return true;
 	}
 	return false;
 }
