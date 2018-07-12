@@ -37,6 +37,10 @@ build/cae: $(obj)
 clean:
 	rm -r build
 
+gl_shaders=$(shell find resources/shaders/opengl/ -type f)
+gl_shader_check: $(gl_shaders)
+	glslangValidator $(gl_shaders)
+
 build/cae.1.gz: docs/cae.1
 	gzip -c docs/cae.1 > build/cae.1.gz
 

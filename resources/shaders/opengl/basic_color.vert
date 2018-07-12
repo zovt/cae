@@ -3,13 +3,8 @@
 in vec3 position;
 in vec3 color;
 
-layout(location = 0)
 uniform mat4 proj;
-
-layout(location = 1)
 uniform mat4 world;
-
-layout(location = 2)
 uniform mat4 transform;
 
 out vec3 f_color;
