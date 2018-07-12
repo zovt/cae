@@ -23,6 +23,8 @@ ShaderCommon::ShaderCommon(std::string const& source, GLenum shader_type) {
 		glGetShaderInfoLog(this->shader, log_len, 0, buf);
 		std::cerr << "SHADER ERROR" << std::endl;
 		std::cerr << buf << std::endl;
+		std::cerr << "SHADER SOURCE" << std::endl;
+		std::cerr << source << std::endl;
 	}
 }
 
