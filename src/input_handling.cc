@@ -238,6 +238,11 @@ bool input_handling::handle_key_event(
 				buffer.save();
 			}
 			return false;
+		case GLFW_KEY_Q:
+			if (event.mods & (int)Modifier::Ctrl) {
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+			}
+			return false;
 		case GLFW_KEY_V:
 			if (event.mods & (int)Modifier::Ctrl) {
 				auto clipboard_str = glfwGetClipboardString(window);
