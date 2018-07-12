@@ -87,6 +87,8 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 	int selection_start_y = newlines_before * line_height_adj + line_height_adj;
 	int selection_end_y = selection_start_y + newlines_in * line_height_adj;
 
+	tex_pixel.vao.activate();
+
 	point_shdr.activate();
 	always.activate(point_shdr.program);
 	VecUniform<GLuint, 3> rect_color = {selection_color.data, "text_fg"};
@@ -117,7 +119,6 @@ void BufferDrawInfo::draw(Buffer const& buffer) const {
 
 	text_shdr.activate();
 	always.activate(this->text_shdr.program);
-	tex_pixel.vao.activate();
 	for (size_t i = 0; i < buffer.contents.size(); i++) {
 		auto chr = buffer.contents[i];
 		if (i == buffer.point.point) {
