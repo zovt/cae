@@ -190,6 +190,7 @@ void Buffer::undo() {
 	change.apply(contents);
 
 	point.point = std::min(point.point, contents.size());
+	point.mark = std::min(point.point, contents.size());
 }
 
 void Buffer::redo() {
@@ -205,6 +206,7 @@ void Buffer::redo() {
 	change.apply(contents);
 
 	point.point = std::min(point.point, contents.size());
+	point.mark = std::min(point.point, contents.size());
 }
 
 void Buffer::save() {
