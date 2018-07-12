@@ -2,4 +2,4 @@
 - Draw Optimizations
 	- Viewport culling?
 	- Instanced rendering?
-- Lazy Redraw
+- Improve startup speed
