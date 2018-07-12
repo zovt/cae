@@ -28,7 +28,7 @@ UVLocation get_uv_location(uint off) {
 	ret.u_max = texel.z;
 	ret.v_max = texel.w;
 	return ret;
-};
+}
 
 float shift_range(float zero_to_one, vec2 min_to_max) {
 	return (((min_to_max.y - min_to_max.x) * zero_to_one) + min_to_max.x);
