@@ -53,7 +53,7 @@ void main() {
 		shift_range(f_uv.y, vec2(uv_location.v_min, uv_location.v_max))
 	);
 
-	float glyph_brightness = texture2D(font_map, uv_shifted).x;
+	float glyph_brightness = texture(font_map, uv_shifted).x;
 
 	vec3 text_fg_fixed = adj_rgb(text_fg);
 	vec3 text_bg_fixed = adj_rgb(text_bg);
