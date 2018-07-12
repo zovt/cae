@@ -88,15 +88,32 @@ void GLAPIENTRY message_cb(
 }
 )
 
-Result<Buffer> get_buffer_from_args(int argc, char* argv[]) {
+Buffer get_initial_buffer(int argc, char* argv[]) {
 	using namespace std::literals;
-	if (argc < 2) {
-		return "Missing file name argument";
-	}
 
-	std::filesystem::path path{argv[1]};
-	if (std::filesystem::exists(path)) {
-		return slurp_to_buffer(path);
+	std::filesystem::path path{"/dev/null"};
+	if (argc == 2) {
+		std::string_view path_str{argv[1]};
+		if (path_str == "-"sv) {
+			Buffer::Contents stdin_contents{};
+			std::string line{};
+			while (std::getline(std::cin, line)) {
+				stdin_contents.insert(stdin_contents.end(), line.begin(), line.end());
+				stdin_contents.push_back('\n');
+			}
+	
+			Buffer buf{};
+			buf.path = path;
+			buf.contents = stdin_contents;
+			return buf;
+		} else {
+			path = std::filesystem::path{argv[1]};
+			if (std::filesystem::exists(path)) {
+				return slurp_to_buffer(path);
+			}
+			Buffer buf{};
+			buf.path = path;
+		}
 	}
 
 	Buffer buf{};
@@ -107,7 +124,7 @@ Result<Buffer> get_buffer_from_args(int argc, char* argv[]) {
 Result<Unit> run(int argc, char* argv[]) {
 	using namespace std::literals;
 	try(auto font_path, get_closest_font_match(conf.fonts));
-	try(auto buffer, get_buffer_from_args(argc, argv));
+	auto buffer = get_initial_buffer(argc, argv);
 
 	auto path_hash = std::hash<std::string>{}(font_path);
 	auto size_hash = std::hash<int>{}(conf.font_size);
