@@ -128,8 +128,7 @@ Result<Unit> run(int argc, char* argv[]) {
 	auto md_path = font_data_folder / "meta.dat";
 
 	CharMapData char_map_data;
-	// FIXME: filesystem caching is broken
-	if (true || !(
+	if (!(
 		std::filesystem::exists(font_data_folder)
 		&& std::filesystem::exists(tex_path)
 		&& std::filesystem::exists(uv_path)
@@ -158,14 +157,13 @@ Result<Unit> run(int argc, char* argv[]) {
 		char_map_data.pixel_data.assign((PixelData*)data, (PixelData*)(data + (tex_bmp_width * tex_bmp_height)));
 		stbi_image_free(data);
 
-
 		auto metrics_size = std::filesystem::file_size(metrics_path);
 		std::ifstream metrics(metrics_path.native(), std::ios::binary);
 		char_map_data.char_to_metrics.resize(metrics_size / sizeof(Metrics));
 		metrics.read((char*)char_map_data.char_to_metrics.data(), metrics_size);
 
 		auto uv_size = std::filesystem::file_size(uv_path);
-		std::ifstream uv(metrics_path.native(), std::ios::binary);
+		std::ifstream uv(uv_path.native(), std::ios::binary);
 		char_map_data.char_to_uv_locations.resize(uv_size / sizeof(UVLocation));
 		uv.read((char*)char_map_data.char_to_uv_locations.data(), uv_size);
 
