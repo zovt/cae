@@ -136,7 +136,7 @@ bool input_handling::handle_mouse_event(
 						return false;
 					}
 					auto point_pos = draw_info.get_mouse_target(buffer, state.last_cursor_pos);
-					buffer.set_point({point_pos, point_pos});
+					buffer.handle_set_point({point_pos, point_pos});
 					return true;
 				} else {
 					state.dragging = false;

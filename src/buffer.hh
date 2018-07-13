@@ -36,6 +36,12 @@ struct Diff {
 	void apply(std::vector<uint8_t>& contents) const;
 };
 
+enum struct SelectionMode {
+	Char,
+	Word,
+	Line
+};
+
 struct Buffer {
 	using Contents = std::vector<uint8_t>;
 
@@ -51,7 +57,10 @@ struct Buffer {
 	std::vector<Diff> undo_chain;
 	std::vector<Diff> redo_chain;
 
+	SelectionMode mode;
+
 	void set_point(Point pos);
+	void handle_set_point(Point pos);
 	void backspace();
 	void insert(uint8_t chr);
 	void insert_all(gsl::span<uint8_t const> chrs);

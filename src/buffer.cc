@@ -7,9 +7,11 @@
 #define DEBUG_NAMESPACE "buffer"
 #include "debug.hh"
 #include "util.hh"
+#include "paired_chars.hh"
 
 using namespace buffer;
 using namespace util;
+using namespace cae;
 
 Diff Diff::inverse() const {
 	if (std::holds_alternative<Addition>(element)) {
@@ -84,6 +86,51 @@ void Buffer::set_point(Point pos) {
 		undo_chain.push_back(current_change.inverse());
 	}
 	current_change.element = unit;
+}
+
+size_t find_pair_chr(
+	Buffer::Contents const& contents,
+	size_t index,
+	uint8_t at,
+	uint8_t wanted,
+	int dir
+) {
+	size_t depth = 0;
+	for (int i = index; i < contents.size() && i >= 0; i += dir) {
+		auto chr = contents[i];
+		if (chr == at) {
+			++depth;
+		} else if (chr == wanted) {
+			if (depth == 0) {
+				return i;
+			}
+			--depth;
+		}
+	}
+
+	return index;
+}
+
+void Buffer::handle_set_point(Point pos) {
+	dbg_println("handle_set_point");
+	if (pos.point == point.point && pos.mark == point.mark) {
+		if (!contents.empty()) {
+			auto chr = contents[point.point];
+			
+			if (auto pair_chr_o = get_paired_char(chr)) {
+				auto pair_chr = *pair_chr_o;
+				if (pair_chr.side == PairSide::Right) {
+					set_point({point.point, find_pair_chr(contents, std::min(point.point + 1, contents.size()), chr, pair_chr.chr, 1) + 1});
+				} else {
+					set_point({point.point + 1, find_pair_chr(contents, std::max((int)point.point - 1, 0), chr, pair_chr.chr, -1)});
+				}
+				return;
+			}
+		}
+		
+	} else {
+		set_point(pos);
+	}
 }
 
 void Buffer::backspace() {
