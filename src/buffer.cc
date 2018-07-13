@@ -7,7 +7,7 @@
 #define DEBUG_NAMESPACE "buffer"
 #include "debug.hh"
 #include "util.hh"
-#include "paired_chars.hh"
+#include "character_classes.hh"
 
 using namespace buffer;
 using namespace util;
