@@ -198,7 +198,7 @@ bool input_handling::handle_char_event(
 	CharEvent event,
 	buffer::Buffer& buffer
 ) {
-	buffer.insert(event.codepoint);
+	buffer.handle_insert(event.codepoint);
 	return true;
 }
 

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <utility>
 
 #define DEBUG_NAMESPACE "buffer"
 #include "debug.hh"
@@ -161,6 +162,30 @@ void Buffer::backspace() {
 		}
 		current_change.element = Deletion{chrs, selection_min, selection_max};
 	}
+}
+
+void Buffer::handle_insert(uint8_t chr) {
+	if (point.point != point.mark) {
+		if (auto pair_chr_o = get_paired_char(chr)) {
+			auto pair_chr = *pair_chr_o;
+			auto current_point = point;
+			auto left = chr;
+			auto right = pair_chr.chr;
+			auto selection_min = std::min(point.point, point.mark);
+			auto selection_max = std::max(point.point, point.mark);
+			if (pair_chr.side == PairSide::Left) {
+				std::swap(left, right);
+			}
+			set_point({selection_min, selection_min});
+			insert(left);
+			set_point({selection_max + 1, selection_max + 1});
+			insert(right);
+			set_point({current_point.point + 1, current_point.mark + 1});
+			return;
+		}
+	}
+
+	insert(chr);
 }
 
 void Buffer::insert(uint8_t chr) {
