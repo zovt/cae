@@ -7,7 +7,6 @@
 #include <csignal>
 #include <cstdlib>
 #include <functional>
-#include <filesystem>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -40,6 +39,7 @@
 #include "resources/shaders/opengl/text.frag.hh"
 #include "resources/shaders/opengl/point.vert.hh"
 #include "resources/shaders/opengl/point.frag.hh"
+#include "plat.hh"
 
 using namespace config;
 using namespace color;
@@ -91,7 +91,7 @@ void GLAPIENTRY message_cb(
 Buffer get_initial_buffer(int argc, char* argv[]) {
 	using namespace std::literals;
 
-	std::filesystem::path path{"/dev/null"};
+	std::string path{"/dev/null"};
 	if (argc == 2) {
 		std::string_view path_str{argv[1]};
 		if (path_str == "-"sv) {
@@ -107,8 +107,8 @@ Buffer get_initial_buffer(int argc, char* argv[]) {
 			buf.contents = stdin_contents;
 			return buf;
 		} else {
-			path = std::filesystem::path{argv[1]};
-			if (std::filesystem::exists(path)) {
+			path = std::string{argv[1]};
+			if (plat_file_exists(path)) {
 				return slurp_to_buffer(path);
 			}
 			Buffer buf{};
@@ -133,38 +133,38 @@ Result<Unit> run(int argc, char* argv[]) {
 	if (home_dir == nullptr) {
 		return "Home dir does not exist"sv;
 	}
-	auto data_dir = std::filesystem::path(home_dir) / ".local" / "share" / "cae";
-	if (!std::filesystem::exists(data_dir)) {
-		std::filesystem::create_directory(data_dir);
+	auto data_dir = std::string(home_dir) + "/.local/share/cae";
+	if (!plat_file_exists(data_dir)) {
+		plat_mkdir(data_dir);
 	}
-	auto font_data_folder = data_dir / hash_name;
+	auto font_data_folder = data_dir + "/" + hash_name;
 
-	auto tex_path = font_data_folder / "tex.bmp";
-	auto uv_path = font_data_folder / "uv.dat";
-	auto metrics_path = font_data_folder / "metrics.dat";
-	auto md_path = font_data_folder / "meta.dat";
+	auto tex_path = font_data_folder + "/tex.bmp";
+	auto uv_path = font_data_folder + "/uv.dat";
+	auto metrics_path = font_data_folder + "/metrics.dat";
+	auto md_path = font_data_folder + "/meta.dat";
 
 	CharMapData char_map_data;
 	if (!(
-		std::filesystem::exists(font_data_folder)
-		&& std::filesystem::exists(tex_path)
-		&& std::filesystem::exists(uv_path)
-		&& std::filesystem::exists(metrics_path)
-		&& std::filesystem::exists(md_path)
+		plat_file_exists(font_data_folder)
+		&& plat_file_exists(tex_path)
+		&& plat_file_exists(uv_path)
+		&& plat_file_exists(metrics_path)
+		&& plat_file_exists(md_path)
 	)) {
-		std::filesystem::create_directory(font_data_folder);
+		plat_mkdir(font_data_folder);
 
 		char_map_data = get_char_map_data(font_path, conf.font_size);
 
 		stbi_write_bmp(tex_path.c_str(), char_map_data.md.image_width, char_map_data.md.image_height, 1, char_map_data.pixel_data.data());
 
-		std::ofstream uv(uv_path.native(), std::ios::binary);
+		std::ofstream uv(uv_path, std::ios::binary);
 		uv.write((char const*)char_map_data.char_to_uv_locations.data(), char_map_data.char_to_uv_locations.size() * sizeof(UVLocation));
 
-		std::ofstream metrics(metrics_path.native(), std::ios::binary);
+		std::ofstream metrics(metrics_path, std::ios::binary);
 		metrics.write((char const*)char_map_data.char_to_metrics.data(), char_map_data.char_to_metrics.size() * sizeof(Metrics));
 
-		std::ofstream md(md_path.native(), std::ios::binary);
+		std::ofstream md(md_path, std::ios::binary);
 		md.write((char const*)(&char_map_data.md), sizeof(CharMapData::Metadata));
 	} else {
 		int tex_bmp_width;
@@ -174,21 +174,21 @@ Result<Unit> run(int argc, char* argv[]) {
 		char_map_data.pixel_data.assign((PixelData*)data, (PixelData*)(data + (tex_bmp_width * tex_bmp_height)));
 		stbi_image_free(data);
 
-		auto metrics_size = std::filesystem::file_size(metrics_path);
-		std::ifstream metrics(metrics_path.native(), std::ios::binary);
+		auto metrics_size = plat_get_file_size(metrics_path);
+		std::ifstream metrics(metrics_path, std::ios::binary);
 		char_map_data.char_to_metrics.resize(metrics_size / sizeof(Metrics));
 		metrics.read((char*)char_map_data.char_to_metrics.data(), metrics_size);
 
-		auto uv_size = std::filesystem::file_size(uv_path);
-		std::ifstream uv(uv_path.native(), std::ios::binary);
+		auto uv_size = plat_get_file_size(uv_path);
+		std::ifstream uv(uv_path, std::ios::binary);
 		char_map_data.char_to_uv_locations.resize(uv_size / sizeof(UVLocation));
 		uv.read((char*)char_map_data.char_to_uv_locations.data(), uv_size);
 
-		std::ifstream md(md_path.native(), std::ios::binary);
+		std::ifstream md(md_path, std::ios::binary);
 		md.read((char*)(&char_map_data.md), sizeof(CharMapData::Metadata));
 	}
 
-	std::string window_name{"cae - " + buffer.path.string()};
+	std::string window_name{"cae - " + buffer.path};
 	Window window(800, 600, window_name.c_str());
 
 	DEBUG_ONLY(

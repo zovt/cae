@@ -65,10 +65,10 @@ void Diff::apply(std::vector<uint8_t>& contents) const {
 	}
 }
 
-Buffer buffer::slurp_to_buffer(std::filesystem::path path) {
+Buffer buffer::slurp_to_buffer(std::string const& path) {
 	Buffer buf{};
-	std::vector<uint8_t> contents(std::filesystem::file_size(path));
-	std::ifstream in(path.native(), std::ios::in | std::ios::binary);
+	std::vector<uint8_t> contents(plat_get_file_size(path));
+	std::ifstream in(path, std::ios::in | std::ios::binary);
 	in.read((char*)contents.data(), contents.size());
 
 	buf.contents = std::move(contents);
@@ -283,7 +283,7 @@ void Buffer::redo() {
 
 void Buffer::save() {
 	dbg_println("Save");
-	std::ofstream out(path.native(), std::ios::out | std::ios::binary);
+	std::ofstream out(path, std::ios::out | std::ios::binary);
 	out.write((const char*)contents.data(), contents.size());
 }
 

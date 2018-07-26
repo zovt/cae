@@ -1,14 +1,15 @@
 #pragma once
 
 #include <cstdint>
-#include <filesystem>
 #include <functional>
 #include <optional>
 #include <variant>
+#include <string_view>
 #include <gsl/span>
 
 #include "common_state.hh"
 #include "unit.hh"
+#include "plat.hh"
 
 namespace buffer {
 
@@ -48,7 +49,7 @@ struct Buffer {
 	Buffer();
 
 	Contents contents;
-	std::filesystem::path path;
+	std::string path;
 
 	// characters are inserted AT this index start
 	Point point;
@@ -76,6 +77,6 @@ struct Buffer {
 	void point_right();
 };
 
-Buffer slurp_to_buffer(std::filesystem::path path);
+Buffer slurp_to_buffer(std::string const& path);
 
 }
