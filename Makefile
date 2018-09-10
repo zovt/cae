@@ -45,6 +45,7 @@ build/cae.1.gz: docs/cae.1
 	gzip -c docs/cae.1 > build/cae.1.gz
 
 man: build/cae.1.gz
+	sudo mkdir -p /usr/local/share/man/man1 > /dev/null
 	sudo cp build/cae.1.gz /usr/local/share/man/man1/cae.1.gz
 
 install: cae man
